@@ -1150,7 +1150,7 @@ function renderOverview(feeds){
     "No feeds logged for this date.";
 
   mkChart("chart-feeds",{type:"bar",
-    data:{labels:t.displayFeeds.map(function(f){return f.time;}),
+    data:{labels:t.displayFeeds.map(function(f){return f.direct?f.time+' ★':f.time;}),
       datasets:[
         {label:"Breast Milk",data:t.displayFeeds.map(function(f){return f.bm;}),backgroundColor:"rgba(232,96,122,0.8)",borderRadius:4,stack:"a"},
         {label:"Formula",    data:t.displayFeeds.map(function(f){return f.formula;}),backgroundColor:"rgba(155,89,182,0.8)",borderRadius:4,stack:"a"}
