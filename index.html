@@ -634,7 +634,7 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
     <div class="form-grid">
       <div><label class="form-label">Date</label><input class="form-input" type="date" id="f-date" /></div>
       <div><label class="form-label">Feed Time</label><input class="form-input" type="time" id="f-time" /></div>
-      <div><label class="form-label">🍼 Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div><label class="form-label">🤱 Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
       <div><label class="form-label">🥛 Formula (ml)</label><input class="form-input" type="number" id="f-fm" placeholder="0" min="0" oninput="updatePreview()" /></div>
       <div style="grid-column:1/-1"><label class="form-label">&#x1F4A7; Pump Time <span style="color:var(--subtle);font-weight:400;font-size:11px">(optional &mdash; when you pumped)</span></label><input class="form-input" type="time" id="f-pump" /></div>
       <div class="breast-section">
@@ -1121,7 +1121,7 @@ function renderStats(feeds,visits){
   var cards=[
     {icon:"&#x2696;&#xFE0F;",val:dispW+" kg",lbl:"Weight",sub:dispDate,c:"var(--rose)"},
     {icon:"&#x1F4CF;",val:dispH+" cm",lbl:"Height",sub:dispDate,c:"var(--plum)"},
-    {icon:"🍼",val:t.dailyBM+" ml",lbl:"Breast Milk",sub:"today",c:"var(--rose)"},
+    {icon:"🤱",val:t.dailyBM+" ml",lbl:"Breast Milk",sub:"today",c:"var(--rose)"},
     {icon:"🥛",val:t.dailyFormula+" ml",lbl:"Formula",sub:"today",c:"var(--plum)"},
     {icon:"&#x1F4CA;",val:t.dailyTotal+" ml",lbl:"Total",sub:"today",c:"var(--blue)"},
     {icon:"&#x2705;",val:rl+"&ndash;"+rh,lbl:"Target Range",sub:"ml/day",c:"var(--green)"},
@@ -1385,7 +1385,7 @@ function renderLog(feeds){
       return gapHtml+
         '<div class="log-row"><span class="log-time">'+f.time+'</span><div class="log-amounts">'+
         breastHtml+
-        (f.bm>0?'<span class="log-bm">🍼 '+f.bm+' ml</span>':"")+
+        (f.bm>0?'<span class="log-bm">🤱 '+f.bm+' ml</span>':"")+
         (f.formula>0?'<span class="log-fm">🥛 '+f.formula+' ml</span>':"")+
         (tot>0?'<span class="log-tot">'+tot+' ml</span>':"")+
         pumpHtml+
@@ -1455,7 +1455,7 @@ function updatePreview(){
   var tot=bm+fm;
   var parts=[];
   if(_breastSide){var sideLabel={left:"left breast",right:"right breast",both:"both breasts"}[_breastSide];parts.push('<span style="color:var(--rose)">🤱 Direct ('+sideLabel+')</span>');}
-  if(bm>0) parts.push('<span style="color:var(--rose)">🍼 '+bm+' ml BM</span>');
+  if(bm>0) parts.push('<span style="color:var(--rose)">🤱 '+bm+' ml BM</span>');
   if(fm>0) parts.push('<span style="color:var(--plum)">🥛 '+fm+' ml formula</span>');
   if(tot>0) parts.push('<strong>'+tot+' ml total</strong>');
   document.getElementById("feed-preview").innerHTML=parts.length?parts.join(' &middot; '):"Enter amounts above";
@@ -1483,11 +1483,11 @@ function saveFeed(){
   var tot=bm+fm;
   var chips=[];
   if(direct){var sl={left:"◀ Left",right:"Right ▶",both:"⟺ Both"}[direct];chips.push({label:'🤱 Direct ('+sl+')',cls:'rose'});}
-  if(bm>0) chips.push({label:'🍼 '+bm+' ml BM',cls:'rose'});
+  if(bm>0) chips.push({label:'🤱 '+bm+' ml BM',cls:'rose'});
   if(fm>0) chips.push({label:'🥛 '+fm+' ml formula',cls:'plum'});
   if(tot>0) chips.push({label:'Total: '+tot+' ml',cls:'green'});
   if(pump) chips.push({label:'💧 Pumped '+pump,cls:''});
-  showSuccess('🍼',isEdit?'Feed Updated!':'Feed Logged!',isEdit?'Feed entry has been updated.':'Your little guy\'s feed has been recorded.',chips);
+  showSuccess('🤱',isEdit?'Feed Updated!':'Feed Logged!',isEdit?'Feed entry has been updated.':'Your little guy\'s feed has been recorded.',chips);
 }
 
 // Visit Modal
