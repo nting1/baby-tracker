@@ -754,8 +754,21 @@ function togglePwVis(){
 }
 
 // Data
+function migrateDates(feeds){
+  // One-time fix: patch any feed dates that were accidentally stored as 2025 → 2026
+  var changed=false;
+  var fixed=feeds.map(function(f){
+    if(f.date&&f.date.startsWith("2025-")){
+      changed=true;
+      return Object.assign({},f,{date:f.date.replace("2025-","2026-")});
+    }
+    return f;
+  });
+  if(changed) saveFeeds(fixed);
+  return fixed;
+}
 function loadFeeds(){
-  try{var s=localStorage.getItem(STORAGE_KEY);return s?JSON.parse(s):JSON.parse(JSON.stringify(SEED_FEEDS));}
+  try{var s=localStorage.getItem(STORAGE_KEY);var f=s?JSON.parse(s):JSON.parse(JSON.stringify(SEED_FEEDS));return migrateDates(f);}
   catch(e){return JSON.parse(JSON.stringify(SEED_FEEDS));}
 }
 function saveFeeds(f){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(f));}catch(e){}}
