@@ -1122,7 +1122,7 @@ function renderStats(feeds,visits){
     {icon:"&#x1F37C;",val:t.dailyFormula+" ml",lbl:"Formula",sub:"today",c:"var(--plum)"},
     {icon:"&#x1F4CA;",val:t.dailyTotal+" ml",lbl:"Total",sub:"today",c:"var(--blue)"},
     {icon:"&#x2705;",val:rl+"&ndash;"+rh,lbl:"Target Range",sub:"ml/day",c:"var(--green)"},
-    {icon:"&#x1F4A7;",val:pct+"%",lbl:"Coverage",sub:"of mid-target",c:pc}
+    {icon:"&#x1F4A7;",val:pct+"%",lbl:"Coverage",sub:gap>0?(rm-t.dailyTotal)+" ml to go":"mid-target met! ✓",c:pc}
   ];
   document.getElementById("stats-grid").innerHTML=cards.map(function(c){
     return '<div class="stat-card"><div class="stat-icon">'+c.icon+'</div><div class="stat-val" style="color:'+c.c+'">'+c.val+'</div><div class="stat-lbl">'+c.lbl+'</div><div class="stat-sub">'+c.sub+'</div></div>';
