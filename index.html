@@ -152,6 +152,17 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 @keyframes slideUp{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:translateY(0)}}
 @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}60%{transform:translateX(8px)}80%{transform:translateX(-4px)}}
 
+/* Visit log */
+.visit-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(220,160,160,0.1);transition:background 0.15s}
+.visit-row:last-child{border-bottom:none}
+.visit-row:hover{background:rgba(155,89,182,0.04)}
+.visit-date-lbl{color:var(--plum);font-weight:600;font-size:13px;min-width:86px}
+.visit-age-lbl{color:var(--muted);font-size:11px;min-width:58px}
+.visit-vals{flex:1;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.visit-w{color:var(--rose);font-size:13px}
+.visit-h{color:var(--plum);font-size:13px}
+.visit-note-txt{color:var(--muted);font-size:11px;font-style:italic}
+.latest-badge{background:rgba(39,174,96,0.1);border:1px solid rgba(39,174,96,0.25);border-radius:8px;padding:2px 8px;font-size:10px;color:var(--green);font-weight:600;white-space:nowrap}
 @media(max-width:480px){
   .site-header h1{font-size:24px}
   .form-grid{grid-template-columns:1fr}
@@ -192,6 +203,7 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
   <nav class="tab-bar">
     <button class="tab-btn active" data-tab="overview"   onclick="switchTab(this)">&#x1F4CA; Overview</button>
     <button class="tab-btn"        data-tab="growth"     onclick="switchTab(this)">&#x1F4CF; Growth</button>
+    <button class="tab-btn"        data-tab="visits"     onclick="switchTab(this)">&#x1FA78; Doctor Visits</button>
     <button class="tab-btn"        data-tab="projection" onclick="switchTab(this)">&#x1F4C8; Projections</button>
     <button class="tab-btn"        data-tab="bmonly"     onclick="switchTab(this)">&#x1F931; BM Plan</button>
     <button class="tab-btn"        data-tab="log"        onclick="switchTab(this)">&#x1F4CB; Feed Log</button>
@@ -234,6 +246,26 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
         <div class="summary-tile"><div class="lbl">Height (3 Mar)</div><div class="val" style="color:var(--plum)">55 cm</div><div class="sub">~25&ndash;35th %ile WHO boys</div></div>
         <div class="summary-tile"><div class="lbl">Growth Pattern</div><div class="val" style="color:var(--blue)">Proportionate</div><div class="sub">Consistent percentiles</div></div>
         <div class="summary-tile"><div class="lbl">Daily Need Range</div><div class="val" id="need-range-tile" style="color:var(--green)">711&ndash;914 ml</div><div class="sub">140&ndash;180 ml/kg/day</div></div>
+      </div>
+    </div>
+
+    <!-- Doctor Visits -->
+    <div class="tab-panel" id="tab-visits">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <h2 style="font-family:var(--fd);font-size:16px;color:var(--text)" id="visits-title">Doctor Visits</h2>
+        <button class="add-feed-inline" onclick="openVisitModal()">+ Log Visit</button>
+      </div>
+      <div class="card">
+        <div class="card-title">&#x2696;&#xFE0F; Weight Over Time</div>
+        <div class="chart-wrap"><canvas id="chart-visit-weight"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">&#x1F4CF; Height Over Time</div>
+        <div class="chart-wrap"><canvas id="chart-visit-height"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">Visit History</div>
+        <div id="visits-list"></div>
       </div>
     </div>
 
@@ -310,6 +342,24 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
   </div>
 </div>
 
+<!-- Add Visit Modal -->
+<div class="modal-overlay hidden" id="visit-modal-overlay" onclick="if(event.target===this)closeVisitModal()">
+  <div class="modal">
+    <div class="modal-title">&#x1FA78; Log Doctor Visit</div>
+    <div class="form-grid">
+      <div style="grid-column:1/-1"><label class="form-label">Date of Visit</label><input class="form-input" type="date" id="v-date" /></div>
+      <div><label class="form-label">Weight (kg)</label><input class="form-input" type="number" id="v-weight" placeholder="e.g. 5.50" min="0" step="0.01" oninput="updateVisitPreview()" /></div>
+      <div><label class="form-label">Height (cm)</label><input class="form-input" type="number" id="v-height" placeholder="e.g. 57.0" min="0" step="0.1" oninput="updateVisitPreview()" /></div>
+      <div style="grid-column:1/-1"><label class="form-label">Notes (optional)</label><input class="form-input" type="text" id="v-note" placeholder="e.g. All clear, next visit in 4 weeks" /></div>
+    </div>
+    <div class="feed-preview" id="visit-preview">Enter measurements above</div>
+    <div class="btn-row">
+      <button class="btn-cancel" onclick="closeVisitModal()">Cancel</button>
+      <button class="btn-save" onclick="saveVisit()">Save Visit &#x2713;</button>
+    </div>
+  </div>
+</div>
+
 <!-- Confirm Delete -->
 <div class="modal-overlay hidden" id="confirm-overlay" onclick="if(event.target===this)closeConfirm()">
   <div class="confirm-modal">
@@ -332,11 +382,16 @@ var SITE_PASSWORD = "littleone";
 // =============================================================================
 
 var STORAGE_KEY = "bft_feeds_v1";
+var VISITS_KEY  = "bft_visits_v1";
 var SESSION_KEY = "bft_session";
 var BIRTH_DATE  = new Date("2026-01-09");
 var MEAS_WEIGHT = 5.02;
 var MEAS_HEIGHT = 55;
 var CURR_WEIGHT = 5.08;
+
+var SEED_VISITS = [
+  {id:"v1",date:"2026-03-03",weight:5.02,height:55,note:"Regular check-up"}
+];
 
 var SEED_FEEDS = [
   {id:"s1",date:"2025-03-06",time:"21:45",bm:70, formula:0 },
@@ -407,6 +462,11 @@ function loadFeeds(){
   catch(e){return JSON.parse(JSON.stringify(SEED_FEEDS));}
 }
 function saveFeeds(f){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(f));}catch(e){}}
+function loadVisits(){
+  try{var s=localStorage.getItem(VISITS_KEY);return s?JSON.parse(s):JSON.parse(JSON.stringify(SEED_VISITS));}
+  catch(e){return JSON.parse(JSON.stringify(SEED_VISITS));}
+}
+function saveVisits(v){try{localStorage.setItem(VISITS_KEY,JSON.stringify(v));}catch(e){}}
 function uid(){return Math.random().toString(36).slice(2,9);}
 
 // Projection
@@ -455,22 +515,42 @@ function initApp(){renderAll();}
 
 function renderAll(){
   var feeds=loadFeeds();
-  renderStats(feeds);
+  var visits=loadVisits();
+  visits.sort(function(a,b){return a.date.localeCompare(b.date);});
+  var latest=visits.length>0?visits[visits.length-1]:null;
+  if(latest){CURR_WEIGHT=latest.weight;}
+  renderStats(feeds,visits);
   renderOverview(feeds);
-  renderGrowth();
+  renderGrowth(visits);
+  renderVisits(visits);
   renderProjection(feeds);
   renderBMOnly(feeds);
   renderLog(feeds);
 }
 
-function renderStats(feeds){
+function ageAtDate(dateStr){
+  var birth=new Date("2026-01-09");
+  var d=new Date(dateStr+"T12:00");
+  var days=Math.round((d-birth)/(1000*60*60*24));
+  var wks=Math.floor(days/7),rem=days%7;
+  if(wks===0) return rem+"d";
+  return wks+"w"+(rem>0?" "+rem+"d":"");
+}
+
+function renderStats(feeds,visits){
+  visits=visits||loadVisits();
+  visits.sort(function(a,b){return a.date.localeCompare(b.date);});
+  var latest=visits.length>0?visits[visits.length-1]:null;
+  var dispW=latest?latest.weight:MEAS_WEIGHT;
+  var dispH=latest?latest.height:MEAS_HEIGHT;
+  var dispDate=latest?new Date(latest.date+"T12:00").toLocaleDateString("en",{day:"numeric",month:"short"}):"-";
   var t=getDayTotals(feeds);
   var rm=Math.round(CURR_WEIGHT*160),rl=Math.round(CURR_WEIGHT*140),rh=Math.round(CURR_WEIGHT*180);
   var pct=Math.round(t.dailyTotal/rm*100);
   var pc=pct>=85?"var(--green)":pct>=70?"var(--amber)":"var(--red)";
   var cards=[
-    {icon:"&#x2696;&#xFE0F;",val:MEAS_WEIGHT+" kg",lbl:"Weight",sub:"3 Mar",c:"var(--rose)"},
-    {icon:"&#x1F4CF;",val:MEAS_HEIGHT+" cm",lbl:"Height",sub:"3 Mar",c:"var(--plum)"},
+    {icon:"&#x2696;&#xFE0F;",val:dispW+" kg",lbl:"Weight",sub:dispDate,c:"var(--rose)"},
+    {icon:"&#x1F4CF;",val:dispH+" cm",lbl:"Height",sub:dispDate,c:"var(--plum)"},
     {icon:"&#x1F931;",val:t.dailyBM+" ml",lbl:"Breast Milk",sub:"today",c:"var(--rose)"},
     {icon:"&#x1F95B;",val:t.dailyFormula+" ml",lbl:"Formula",sub:"today",c:"var(--plum)"},
     {icon:"&#x1F4CA;",val:t.dailyTotal+" ml",lbl:"Total",sub:"today",c:"var(--blue)"},
@@ -545,7 +625,29 @@ function renderOverview(feeds){
   }).join("");
 }
 
-function renderGrowth(){
+function renderGrowth(visits){
+  visits=visits||loadVisits();
+  visits.sort(function(a,b){return a.date.localeCompare(b.date);});
+  // Map visits to WHO week index for weight chart (WHO_W weeks: 0,2,4,6,7,8,10,12,16,20,26)
+  var wWpts=visits.map(function(v){
+    var birth=new Date("2026-01-09");
+    var d=new Date(v.date+"T12:00");
+    var wk=Math.round((d-birth)/(1000*60*60*24*7));
+    return {wk:wk,weight:v.weight,height:v.height};
+  });
+  // Build sparse arrays aligned to WHO_W x-axis labels
+  var wWeightData=WHO_W.map(function(){return null;});
+  var wHeightData=WHO_H.map(function(){return null;});
+  wWpts.forEach(function(pt){
+    // find closest WHO_W index
+    var best=-1,bestDist=999;
+    WHO_W.forEach(function(d,i){if(Math.abs(d.w-pt.wk)<bestDist){bestDist=Math.abs(d.w-pt.wk);best=i;}});
+    if(best>=0&&pt.weight)wWeightData[best]=pt.weight;
+    var bestH=-1,bestDistH=999;
+    WHO_H.forEach(function(d,i){if(Math.abs(d.w-pt.wk)<bestDistH){bestDistH=Math.abs(d.w-pt.wk);bestH=i;}});
+    if(bestH>=0&&pt.height)wHeightData[bestH]=pt.height;
+  });
+
   mkChart("chart-weight",{type:"line",
     data:{labels:WHO_W.map(function(d){return "Wk "+d.w;}),
       datasets:[
@@ -554,8 +656,10 @@ function renderGrowth(){
         {label:"50th",data:WHO_W.map(function(d){return d.p50;}),borderColor:"rgba(232,96,122,0.9)",borderWidth:2.5,pointRadius:0,fill:false},
         {label:"15th",data:WHO_W.map(function(d){return d.p15;}),borderColor:"rgba(210,160,170,0.5)",borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false},
         {label:"3rd", data:WHO_W.map(function(d){return d.p3;}), borderColor:"rgba(220,180,185,0.4)",borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false},
-        {label:"Your son",data:WHO_W.map(function(d,i){return i===4?MEAS_WEIGHT:null;}),
-          borderColor:"rgba(232,96,122,1)",backgroundColor:"rgba(232,96,122,1)",pointRadius:9,pointStyle:"star",showLine:false,fill:false}
+        {label:"Measurements",data:wWeightData,
+          borderColor:"rgba(232,96,122,1)",backgroundColor:"rgba(232,96,122,1)",
+          pointRadius:8,pointStyle:"star",showLine:true,fill:false,
+          borderWidth:1.5,tension:0.3,spanGaps:false}
       ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:CD.plugins,
       scales:{x:CD.scales.x,y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,min:2,max:12,title:{display:true,text:"kg",color:"#b09090",font:{size:11}}}}}});
@@ -566,11 +670,67 @@ function renderGrowth(){
         {label:"97th",data:WHO_H.map(function(d){return d.p97;}),borderColor:"rgba(200,170,220,0.5)",borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false},
         {label:"50th",data:WHO_H.map(function(d){return d.p50;}),borderColor:"rgba(155,89,182,0.9)",borderWidth:2.5,pointRadius:0,fill:false},
         {label:"3rd", data:WHO_H.map(function(d){return d.p3;}), borderColor:"rgba(200,170,220,0.4)",borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false},
-        {label:"Your son",data:WHO_H.map(function(d,i){return i===1?MEAS_HEIGHT:null;}),
-          borderColor:"rgba(155,89,182,1)",backgroundColor:"rgba(155,89,182,1)",pointRadius:9,pointStyle:"star",showLine:false,fill:false}
+        {label:"Measurements",data:wHeightData,
+          borderColor:"rgba(155,89,182,1)",backgroundColor:"rgba(155,89,182,1)",
+          pointRadius:8,pointStyle:"star",showLine:true,fill:false,
+          borderWidth:1.5,tension:0.3,spanGaps:false}
       ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:CD.plugins,
       scales:{x:CD.scales.x,y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,min:44,max:74,title:{display:true,text:"cm",color:"#b09090",font:{size:11}}}}}});
+}
+
+function renderVisits(visits){
+  visits=visits||loadVisits();
+  visits.sort(function(a,b){return a.date.localeCompare(b.date);});
+  document.getElementById("visits-title").textContent="Doctor Visits ("+visits.length+")";
+
+  // Dedicated weight chart
+  var vLabels=visits.map(function(v){return new Date(v.date+"T12:00").toLocaleDateString("en",{day:"numeric",month:"short"});});
+  mkChart("chart-visit-weight",{type:"line",
+    data:{labels:vLabels,
+      datasets:[{label:"Weight (kg)",data:visits.map(function(v){return v.weight||null;}),
+        borderColor:"rgba(232,96,122,0.9)",backgroundColor:"rgba(232,96,122,0.15)",
+        tension:0.3,fill:true,pointRadius:7,pointBackgroundColor:"rgba(232,96,122,1)",
+        borderWidth:2.5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:CD.plugins,
+      scales:{x:CD.scales.x,y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,
+        title:{display:true,text:"kg",color:"#b09090",font:{size:11}},suggestedMin:3,suggestedMax:10}}}});
+
+  mkChart("chart-visit-height",{type:"line",
+    data:{labels:vLabels,
+      datasets:[{label:"Height (cm)",data:visits.map(function(v){return v.height||null;}),
+        borderColor:"rgba(155,89,182,0.9)",backgroundColor:"rgba(155,89,182,0.12)",
+        tension:0.3,fill:true,pointRadius:7,pointBackgroundColor:"rgba(155,89,182,1)",
+        borderWidth:2.5}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:CD.plugins,
+      scales:{x:CD.scales.x,y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,
+        title:{display:true,text:"cm",color:"#b09090",font:{size:11}},suggestedMin:46,suggestedMax:80}}}});
+
+  var listEl=document.getElementById("visits-list");
+  if(visits.length===0){
+    listEl.innerHTML='<div style="text-align:center;padding:30px;color:var(--muted)"><div style="font-size:32px;margin-bottom:8px">&#x1FA78;</div><p>No visits logged yet. Tap &ldquo;+ Log Visit&rdquo; to add one.</p></div>';
+    return;
+  }
+  // Show newest first
+  var reversed=visits.slice().reverse();
+  listEl.innerHTML='<div style="border-radius:12px;overflow:hidden;border:1px solid var(--border)">'+
+    reversed.map(function(v,i){
+      var age=ageAtDate(v.date);
+      var dlbl=new Date(v.date+"T12:00").toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"});
+      var isLatest=(i===0);
+      return '<div class="visit-row">'+
+        '<span class="visit-date-lbl">'+dlbl+'</span>'+
+        '<span class="visit-age-lbl">'+age+'</span>'+
+        '<div class="visit-vals">'+
+          (v.weight?'<span class="visit-w">&#x2696;&#xFE0F; '+v.weight+' kg</span>':"")+
+          (v.height?'<span class="visit-h">&#x1F4CF; '+v.height+' cm</span>':"")+
+          (v.note?'<span class="visit-note-txt">'+v.note+'</span>':"")+
+        '</div>'+
+        (isLatest?'<span class="latest-badge">latest</span>':"")+
+        '<button class="del-btn" onclick="askDeleteVisit(\''+v.id+'\')" title="Remove">&times;</button>'+
+      '</div>';
+    }).join("")+
+  '</div>';
 }
 
 function renderProjection(feeds){
@@ -679,14 +839,62 @@ function saveFeed(){
   showToast("&#x2713; Feed saved &mdash; "+(bm+fm)+" ml total");
 }
 
-// Delete
+// Visit Modal
+function openVisitModal(){
+  var now=new Date();
+  document.getElementById("v-date").value=now.toISOString().slice(0,10);
+  document.getElementById("v-weight").value="";
+  document.getElementById("v-height").value="";
+  document.getElementById("v-note").value="";
+  document.getElementById("visit-preview").innerHTML="Enter measurements above";
+  document.getElementById("visit-modal-overlay").classList.remove("hidden");
+  setTimeout(function(){document.getElementById("v-weight").focus();},100);
+}
+function closeVisitModal(){document.getElementById("visit-modal-overlay").classList.add("hidden");}
+function updateVisitPreview(){
+  var w=parseFloat(document.getElementById("v-weight").value)||0;
+  var h=parseFloat(document.getElementById("v-height").value)||0;
+  if(!w&&!h){document.getElementById("visit-preview").innerHTML="Enter measurements above";return;}
+  document.getElementById("visit-preview").innerHTML=
+    (w?'<span style="color:var(--rose)">&#x2696;&#xFE0F; '+w+' kg</span> &nbsp;&middot;&nbsp; ':"")+
+    (h?'<span style="color:var(--plum)">&#x1F4CF; '+h+' cm</span>':"");
+}
+function saveVisit(){
+  var date=document.getElementById("v-date").value;
+  var w=parseFloat(document.getElementById("v-weight").value)||0;
+  var h=parseFloat(document.getElementById("v-height").value)||0;
+  var note=document.getElementById("v-note").value.trim();
+  if(!date||(w===0&&h===0)){showToast("Please enter a date and at least one measurement.","var(--red)");return;}
+  var visits=loadVisits();
+  visits.push({id:uid(),date:date,weight:w||null,height:h||null,note:note||null});
+  visits.sort(function(a,b){return a.date.localeCompare(b.date);});
+  saveVisits(visits);
+  // Update CURR_WEIGHT to latest
+  if(w) CURR_WEIGHT=w;
+  closeVisitModal();
+  renderAll();
+  showToast("&#x2713; Visit saved"+(w?" &mdash; "+w+" kg":"")+(h?" &middot; "+h+" cm":""));
+}
+
+var pendingDelVisitId=null;
+function askDeleteVisit(id){pendingDelVisitId=id;pendingDelId=null;document.getElementById("confirm-overlay").classList.remove("hidden");}
+
+// Delete (feeds)
 var pendingDelId=null;
 function askDelete(id){pendingDelId=id;document.getElementById("confirm-overlay").classList.remove("hidden");}
 function closeConfirm(){pendingDelId=null;document.getElementById("confirm-overlay").classList.add("hidden");}
 function confirmDelete(){
-  if(!pendingDelId)return;
-  var feeds=loadFeeds().filter(function(f){return f.id!==pendingDelId;});
-  saveFeeds(feeds);closeConfirm();renderAll();showToast("Feed removed.","var(--amber)");
+  if(pendingDelVisitId){
+    var visits=loadVisits().filter(function(v){return v.id!==pendingDelVisitId;});
+    saveVisits(visits);
+    pendingDelVisitId=null;
+    closeConfirm();renderAll();showToast("Visit removed.","var(--amber)");
+  } else if(pendingDelId){
+    var feeds=loadFeeds().filter(function(f){return f.id!==pendingDelId;});
+    saveFeeds(feeds);
+    pendingDelId=null;
+    closeConfirm();renderAll();showToast("Feed removed.","var(--amber)");
+  }
 }
 
 // Tab switch
@@ -696,7 +904,9 @@ function switchTab(btn){
   btn.classList.add("active");
   document.getElementById("tab-"+btn.dataset.tab).classList.add("active");
   var feeds=loadFeeds();
-  if(btn.dataset.tab==="growth")renderGrowth();
+  var visits=loadVisits();
+  if(btn.dataset.tab==="growth")renderGrowth(visits);
+  if(btn.dataset.tab==="visits")renderVisits(visits);
   if(btn.dataset.tab==="projection")renderProjection(feeds);
   if(btn.dataset.tab==="bmonly")renderBMOnly(feeds);
 }
