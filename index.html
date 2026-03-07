@@ -3,39 +3,40 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Baby Feeding Tracker</title>
+<title>Little Guy's Feeding Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --rose:#e8607a;--rose2:#d4508a;--plum:#9b59b6;--blue:#2980b9;
-  --green:#27ae60;--amber:#f39c12;--red:#e74c3c;
-  --bg:#fdf6f0;--card:rgba(255,255,255,0.88);--border:rgba(220,160,160,0.18);
-  --text:#2a1a1a;--muted:#9a7070;--subtle:#c0a0a0;
+  --rose:#1a8fe3;--rose2:#0a6db8;--plum:#17a2c4;--blue:#1565c0;
+  --sky:#64b5f6;--navy:#0d2b5e;--iceblue:#e3f2fd;
+  --green:#2ecc71;--amber:#f39c12;--red:#e74c3c;
+  --bg:#daeefb;--card:rgba(255,255,255,0.94);--border:rgba(26,143,227,0.18);
+  --text:#0a1e38;--muted:#3a5a7a;--subtle:#7aaac5;
   --fd:'Playfair Display',Georgia,serif;--fs:'DM Sans',system-ui,sans-serif;
 }
 html{scroll-behavior:smooth}
 body{font-family:var(--fs);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
-  background:radial-gradient(ellipse at 15% 10%,rgba(232,96,122,0.13) 0%,transparent 55%),
-             radial-gradient(ellipse at 85% 85%,rgba(255,218,185,0.18) 0%,transparent 55%),
-             radial-gradient(ellipse at 60% 45%,rgba(155,89,182,0.08) 0%,transparent 45%)}
+  background:radial-gradient(ellipse at 15% 10%,rgba(26,143,227,0.18) 0%,transparent 55%),
+             radial-gradient(ellipse at 85% 85%,rgba(21,101,192,0.14) 0%,transparent 55%),
+             radial-gradient(ellipse at 60% 45%,rgba(100,181,246,0.1) 0%,transparent 45%)}
 
 /* Lock */
 #lock-screen{position:fixed;inset:0;z-index:9000;background:var(--bg);display:flex;align-items:center;justify-content:center;flex-direction:column;animation:fadeIn 0.4s ease}
 #lock-screen.hidden{display:none}
-.lock-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:44px 40px 36px;width:min(92vw,400px);text-align:center;box-shadow:0 8px 48px rgba(180,60,100,0.12);animation:slideUp 0.45s cubic-bezier(0.34,1.56,0.64,1)}
+.lock-card{background:var(--card);border:1px solid var(--border);border-radius:24px;padding:44px 40px 36px;width:min(92vw,400px);text-align:center;box-shadow:0 8px 48px rgba(33,100,200,0.12);animation:slideUp 0.45s cubic-bezier(0.34,1.56,0.64,1)}
 .lock-icon{font-size:48px;margin-bottom:16px;display:block}
 .lock-title{font-family:var(--fd);font-size:26px;color:var(--text);margin-bottom:6px}
 .lock-sub{color:var(--muted);font-size:13px;margin-bottom:28px}
 .lock-input-wrap{position:relative;margin-bottom:16px}
-.lock-input{width:100%;padding:13px 44px 13px 16px;border:1.5px solid rgba(220,120,140,0.3);border-radius:12px;font-family:var(--fs);font-size:16px;background:#fff;color:var(--text);outline:none;letter-spacing:2px;transition:border-color 0.2s,box-shadow 0.2s}
-.lock-input:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(232,96,122,0.12)}
+.lock-input{width:100%;padding:13px 44px 13px 16px;border:1.5px solid rgba(33,150,243,0.25);border-radius:12px;font-family:var(--fs);font-size:16px;background:#fff;color:var(--text);outline:none;letter-spacing:2px;transition:border-color 0.2s,box-shadow 0.2s}
+.lock-input:focus{border-color:var(--rose);box-shadow:0 0 0 3px rgba(33,150,243,0.12)}
 .lock-input.shake{animation:shake 0.4s ease;border-color:var(--red)}
 .toggle-pw{position:absolute;right:13px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;color:var(--muted);padding:4px}
-.lock-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--rose),var(--rose2));color:#fff;font-family:var(--fs);font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 4px 16px rgba(220,80,120,0.35);transition:transform 0.15s,box-shadow 0.15s;letter-spacing:0.3px}
-.lock-btn:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(220,80,120,0.45)}
+.lock-btn{width:100%;padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--rose),var(--rose2));color:#fff;font-family:var(--fs);font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 4px 16px rgba(33,100,200,0.35);transition:transform 0.15s,box-shadow 0.15s;letter-spacing:0.3px}
+.lock-btn:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(33,100,200,0.45)}
 .lock-error{color:var(--red);font-size:12px;margin-top:10px;min-height:18px;font-weight:500}
 .lock-hint{color:var(--subtle);font-size:11px;margin-top:20px}
 
@@ -61,8 +62,8 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 .stat-sub{color:var(--subtle);font-size:9px}
 
 /* Tab bar */
-.tab-bar{position:sticky;top:0;z-index:100;background:rgba(253,246,240,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);display:flex;gap:5px;justify-content:center;padding:10px 14px 8px;flex-wrap:wrap;margin-top:18px}
-.tab-btn{padding:7px 15px;border-radius:20px;border:none;cursor:pointer;font-family:var(--fs);font-size:12px;font-weight:400;background:rgba(0,0,0,0.05);color:#8a6060;transition:all 0.2s}
+.tab-bar{position:sticky;top:0;z-index:100;background:rgba(220,238,251,0.95);backdrop-filter:blur(10px);border-bottom:1px solid var(--border);display:flex;gap:5px;justify-content:center;padding:10px 14px 8px;flex-wrap:wrap;margin-top:18px}
+.tab-btn{padding:7px 15px;border-radius:20px;border:none;cursor:pointer;font-family:var(--fs);font-size:12px;font-weight:400;background:rgba(0,0,0,0.05);color:#3a6080;transition:all 0.2s}
 .tab-btn.active{background:linear-gradient(135deg,var(--rose),var(--rose2));color:#fff;font-weight:600;box-shadow:0 3px 12px rgba(220,80,120,0.3)}
 
 /* Content */
@@ -72,10 +73,10 @@ body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
 
 /* Card */
 .card{background:var(--card);border-radius:18px;padding:20px 18px;margin-bottom:16px;box-shadow:0 4px 24px rgba(100,40,60,0.07);border:1px solid var(--border)}
-.card-title{font-family:var(--fd);font-size:14px;font-weight:700;color:#6a2040;margin-bottom:16px}
+.card-title{font-family:var(--fd);font-size:14px;font-weight:700;color:#0d3060;margin-bottom:16px}
 .chart-wrap{position:relative;height:240px;margin-bottom:6px}
-.info-note{background:rgba(232,96,122,0.05);border:1px solid rgba(232,96,122,0.18);border-radius:10px;padding:10px 14px;margin-top:12px;font-size:12px;color:#7a4050;line-height:1.65}
-.alert{border-radius:12px;padding:12px 15px;margin-bottom:14px;font-size:13px;line-height:1.55;color:#4a2020}
+.info-note{background:rgba(26,143,227,0.06);border:1px solid rgba(26,143,227,0.2);border-radius:10px;padding:10px 14px;margin-top:12px;font-size:12px;color:#1a4070;line-height:1.65}
+.alert{border-radius:12px;padding:12px 15px;margin-bottom:14px;font-size:13px;line-height:1.55;color:#0d2040}
 
 /* Progress bars */
 .pbar-grid{display:flex;gap:14px;flex-wrap:wrap}
@@ -138,6 +139,9 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 .log-bmpct{color:var(--rose);font-size:10px;width:30px}
 .del-btn{background:none;border:none;cursor:pointer;color:#d0a0a0;font-size:18px;padding:2px 6px;border-radius:6px;line-height:1;transition:color 0.15s}
 .del-btn:hover{color:var(--red)}
+.edit-btn{background:none;border:1px solid rgba(26,143,227,0.25);cursor:pointer;color:var(--rose);font-size:11px;font-weight:600;padding:3px 9px;border-radius:10px;line-height:1.4;transition:all 0.15s;font-family:var(--fs);flex-shrink:0}
+.edit-btn:hover{background:rgba(26,143,227,0.1);border-color:var(--rose)}
+.row-actions{display:flex;align-items:center;gap:4px;flex-shrink:0}
 .add-feed-inline{display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:20px;border:none;background:linear-gradient(135deg,var(--rose),var(--rose2));color:#fff;font-family:var(--fs);font-size:12px;font-weight:600;cursor:pointer;box-shadow:0 3px 10px rgba(220,80,120,0.3)}
 
 /* Growth summary */
@@ -274,6 +278,36 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 .stat-card{transition:transform 0.2s,box-shadow 0.2s}
 .stat-card:hover{transform:translateY(-4px) scale(1.04);box-shadow:0 8px 28px rgba(232,96,122,0.18)}
 
+/* Breast feed direct toggle */
+.breast-section{grid-column:1/-1;margin-top:2px}
+.breast-toggle-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:12px;border:1.5px solid rgba(26,143,227,0.18);background:rgba(26,143,227,0.04);cursor:pointer;transition:all 0.2s;user-select:none}
+.breast-toggle-row:hover{border-color:var(--rose);background:rgba(26,143,227,0.09)}
+.breast-toggle-row.active{border-color:var(--rose);background:rgba(26,143,227,0.1)}
+.breast-checkbox{width:20px;height:20px;border-radius:6px;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all 0.2s;background:#fff}
+.breast-checkbox.checked{background:var(--rose);border-color:var(--rose)}
+.breast-checkbox.checked::after{content:'✓';color:#fff;font-size:12px;font-weight:700}
+.breast-toggle-label{font-size:13px;font-weight:500;color:var(--text);flex:1}
+.breast-toggle-sub{font-size:11px;color:var(--muted)}
+.breast-side-row{display:flex;gap:8px;margin-top:9px;animation:slideUp 0.2s ease}
+.breast-side-btn{flex:1;padding:9px 0;border-radius:10px;border:1.5px solid rgba(26,143,227,0.22);background:#fff;cursor:pointer;font-family:var(--fs);font-size:12px;font-weight:600;color:var(--muted);transition:all 0.18s;display:flex;align-items:center;justify-content:center;gap:5px}
+.breast-side-btn:hover{border-color:var(--rose);color:var(--rose);background:rgba(26,143,227,0.07)}
+.breast-side-btn.selected{background:var(--rose);border-color:var(--rose);color:#fff;box-shadow:0 3px 12px rgba(26,143,227,0.3)}
+/* Breast feed badge in log row */
+.log-breast{font-size:11px;font-weight:600;padding:2px 9px;border-radius:10px;white-space:nowrap;background:rgba(26,143,227,0.1);border:1px solid rgba(26,143,227,0.22);color:var(--rose)}
+.feed-gap-pill{
+  display:flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:600;
+  padding:3px 10px;margin:4px 0 2px 14px;
+  border:1.5px dashed;border-radius:20px;
+  width:fit-content;opacity:0.85;
+  letter-spacing:0.2px;
+}
+/* Pump time label */
+.log-pump{
+  font-size:11px;color:var(--plum);font-weight:500;
+  background:rgba(23,162,196,0.1);border:1px solid rgba(23,162,196,0.25);
+  border-radius:10px;padding:2px 8px;white-space:nowrap;
+}
 /* Visit log */
 .visit-row{display:flex;align-items:center;gap:10px;padding:11px 14px;border-bottom:1px solid rgba(220,160,160,0.1);transition:background 0.15s}
 .visit-row:last-child{border-bottom:none}
@@ -296,7 +330,7 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 .success-overlay{
   position:fixed;inset:0;z-index:8000;
   display:flex;align-items:center;justify-content:center;
-  background:rgba(20,5,15,0.55);
+  background:rgba(5,15,35,0.55);
   backdrop-filter:blur(7px);
   cursor:pointer;
   animation:fadeIn 0.2s ease both;
@@ -304,12 +338,12 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 .success-overlay.hidden{display:none}
 .success-card{
   position:relative;
-  background:linear-gradient(148deg,#fff9f6 0%,#fff0f4 60%,#f8f0ff 100%);
+  background:linear-gradient(148deg,#f0f7ff 0%,#e3f2fd 60%,#e8f4ff 100%);
   border-radius:30px;
   padding:46px 38px 34px;
   width:min(88vw,340px);
   text-align:center;
-  box-shadow:0 30px 90px rgba(200,60,100,0.3),0 0 0 1px rgba(232,96,122,0.12);
+  box-shadow:0 30px 90px rgba(26,100,200,0.28),0 0 0 1px rgba(26,143,227,0.12);
   overflow:hidden;
   animation:successCardIn 0.55s cubic-bezier(0.34,1.56,0.64,1) both;
 }
@@ -375,7 +409,7 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
   animation:slideUp 0.4s ease 0.38s both, shimmer 3s linear 0.78s infinite;
 }
 .success-body{
-  color:#7a4a5a;font-size:13.5px;line-height:1.7;
+  color:#1a3a6a;font-size:13.5px;line-height:1.7;
   animation:slideUp 0.4s ease 0.45s both;
   margin-bottom:18px;
 }
@@ -425,8 +459,8 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 <!-- MAIN APP -->
 <div id="app" class="hidden">
   <header class="site-header">
-    <span class="baby-icon">&#x1F37C;</span>
-    <h1>Baby Feeding Tracker</h1>
+    <span class="baby-icon">&#x1F476;&#x1F4A8;</span>
+    <h1>Little Guy's Tracker</h1>
     <p id="header-sub">Born 9 Jan 2026 &middot; 5.02 kg &middot; 55 cm &middot; Measured 3 Mar</p>
     <button class="logout-btn" onclick="logout()">&#x1F512; Lock</button>
   </header>
@@ -560,17 +594,32 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 <!-- Add Feed Modal -->
 <div class="modal-overlay hidden" id="modal-overlay" onclick="if(event.target===this)closeModal()">
   <div class="modal">
-    <div class="modal-title">&#x1F37C; Log a Feed</div>
+    <div class="modal-title" id="feed-modal-title">&#x1F37C; Log a Feed</div>
     <div class="form-grid">
       <div><label class="form-label">Date</label><input class="form-input" type="date" id="f-date" /></div>
-      <div><label class="form-label">Time</label><input class="form-input" type="time" id="f-time" /></div>
-      <div><label class="form-label">Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
-      <div><label class="form-label">Formula (ml)</label><input class="form-input" type="number" id="f-fm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div><label class="form-label">Feed Time</label><input class="form-input" type="time" id="f-time" /></div>
+      <div><label class="form-label">&#x1F931; Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div><label class="form-label">&#x1F95B; Formula (ml)</label><input class="form-input" type="number" id="f-fm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div style="grid-column:1/-1"><label class="form-label">&#x1F4A7; Pump Time <span style="color:var(--subtle);font-weight:400;font-size:11px">(optional &mdash; when you pumped)</span></label><input class="form-input" type="time" id="f-pump" /></div>
+      <div class="breast-section">
+        <div class="breast-toggle-row" id="breast-toggle-row" onclick="toggleDirectBreast()">
+          <div class="breast-checkbox" id="breast-checkbox"></div>
+          <div>
+            <div class="breast-toggle-label">🤱 Direct breast feed (skin-to-skin)</div>
+            <div class="breast-toggle-sub">Tick if baby fed directly from breast &mdash; no ml needed</div>
+          </div>
+        </div>
+        <div class="breast-side-row hidden" id="breast-side-row">
+          <button type="button" class="breast-side-btn" id="btn-left"  onclick="selectBreastSide('left')">◀ Left breast</button>
+          <button type="button" class="breast-side-btn" id="btn-both"  onclick="selectBreastSide('both')">⟺ Both</button>
+          <button type="button" class="breast-side-btn" id="btn-right" onclick="selectBreastSide('right')">Right breast ▶</button>
+        </div>
+      </div>
     </div>
     <div class="feed-preview" id="feed-preview">Enter amounts above</div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="btn-save" onclick="saveFeed()">Save Feed &#x2713;</button>
+      <button class="btn-save" id="feed-save-btn" onclick="saveFeed()">Save Feed &#x2713;</button>
     </div>
   </div>
 </div>
@@ -578,7 +627,7 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 <!-- Add Visit Modal -->
 <div class="modal-overlay hidden" id="visit-modal-overlay" onclick="if(event.target===this)closeVisitModal()">
   <div class="modal">
-    <div class="modal-title">&#x1FA78; Log Doctor Visit</div>
+    <div class="modal-title" id="visit-modal-title">&#x1FA78; Log Doctor Visit</div>
     <div class="form-grid">
       <div style="grid-column:1/-1"><label class="form-label">Date of Visit</label><input class="form-input" type="date" id="v-date" /></div>
       <div><label class="form-label">Weight (kg)</label><input class="form-input" type="number" id="v-weight" placeholder="e.g. 5.50" min="0" step="0.01" oninput="updateVisitPreview()" /></div>
@@ -588,7 +637,7 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
     <div class="feed-preview" id="visit-preview">Enter measurements above</div>
     <div class="btn-row">
       <button class="btn-cancel" onclick="closeVisitModal()">Cancel</button>
-      <button class="btn-save" onclick="saveVisit()">Save Visit &#x2713;</button>
+      <button class="btn-save" id="visit-save-btn" onclick="saveVisit()">Save Visit &#x2713;</button>
     </div>
   </div>
 </div>
@@ -975,7 +1024,8 @@ function renderVisits(visits){
           (v.note?'<span class="visit-note-txt">'+v.note+'</span>':"")+
         '</div>'+
         (isLatest?'<span class="latest-badge">latest</span>':"")+
-        '<button class="del-btn" onclick="askDeleteVisit(\''+v.id+'\')" title="Remove">&times;</button>'+
+        '<div class="row-actions"><button class="edit-btn" onclick="openVisitModal(\''+v.id+'\')" title="Edit">✏️ Edit</button>'+
+        '<button class="del-btn" onclick="askDeleteVisit(\''+v.id+'\')" title="Remove">&times;</button></div>'+
       '</div>';
     }).join("")+
   '</div>';
@@ -1038,72 +1088,158 @@ function renderLog(feeds){
   feeds.forEach(function(f){(grouped[f.date]=grouped[f.date]||[]).push(f);});
   var dates=Object.keys(grouped).sort(function(a,b){return b.localeCompare(a);});
   c.innerHTML=dates.map(function(date){
-    var df=grouped[date];
+    var df=grouped[date].slice().sort(function(a,b){return a.time.localeCompare(b.time);});
     var dtot=df.reduce(function(s,f){return s+f.bm+f.formula;},0);
     var dbm =df.reduce(function(s,f){return s+f.bm;},0);
     var dpct=dtot>0?Math.round(dbm/dtot*100):0;
     var lbl=new Date(date+"T12:00").toLocaleDateString("en",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-    var rows=df.map(function(f){
+    // calculate gaps between consecutive feeds
+    var rows=df.map(function(f,i){
       var tot=f.bm+f.formula,bp=tot>0?Math.round(f.bm/tot*100):0;
-      return '<div class="log-row"><span class="log-time">'+f.time+'</span><div class="log-amounts"><span class="log-bm">&#x1F931; '+f.bm+' ml</span>'+(f.formula>0?'<span class="log-fm">&#x1F95B; '+f.formula+' ml</span>':"")+
-        '<span class="log-tot">'+tot+' ml</span><div class="log-bar-wrap"><div class="log-mini-bar"><div class="log-mini-fill" style="width:'+bp+'%"></div></div><span class="log-bmpct">'+bp+'%</span></div></div>'+
-        '<button class="del-btn" onclick="askDelete(\''+f.id+'\')" title="Remove">&times;</button></div>';
+      // gap pill — time since previous feed
+      var gapHtml="";
+      if(i>0){
+        var prev=df[i-1];
+        var prevMins=parseInt(prev.time.slice(0,2))*60+parseInt(prev.time.slice(3,5));
+        var curMins =parseInt(f.time.slice(0,2))*60+parseInt(f.time.slice(3,5));
+        var diff=curMins-prevMins;
+        if(diff<0) diff+=1440; // crossed midnight
+        var gh=Math.floor(diff/60),gm=diff%60;
+        var gstr=gh>0?gh+"h "+(gm>0?gm+"m":""):(gm+"m");
+        var gcol=diff<120?"var(--amber)":diff>=180?"var(--green)":"var(--plum)";
+        gapHtml='<div class="feed-gap-pill" style="border-color:'+gcol+';color:'+gcol+'">&#x23F1; '+gstr+' since last</div>';
+      }
+      var pumpHtml=f.pump?'<span class="log-pump">&#x1F4A7; pumped '+f.pump+'</span>':"";
+      var sideLabel={left:"◀ Left",right:"Right ▶",both:"⟺ Both"};
+      var breastHtml=f.direct?'<span class="log-breast">🤱 Direct &middot; '+(sideLabel[f.direct]||f.direct)+'</span>':"";
+      return gapHtml+
+        '<div class="log-row"><span class="log-time">'+f.time+'</span><div class="log-amounts">'+
+        breastHtml+
+        (f.bm>0?'<span class="log-bm">&#x1F931; '+f.bm+' ml</span>':"")+
+        (f.formula>0?'<span class="log-fm">&#x1F95B; '+f.formula+' ml</span>':"")+
+        (tot>0?'<span class="log-tot">'+tot+' ml</span>':"")+
+        pumpHtml+
+        (tot>0?'<div class="log-bar-wrap"><div class="log-mini-bar"><div class="log-mini-fill" style="width:'+bp+'%"></div></div><span class="log-bmpct">'+bp+'%</span></div>':"")+
+        '</div>'+
+        '<div class="row-actions"><button class="edit-btn" onclick="openModal(\''+f.id+'\')" title="Edit">✏️ Edit</button>'+
+        '<button class="del-btn" onclick="askDelete(\''+f.id+'\')" title="Remove">&times;</button></div></div>';
     }).join("");
     return '<div><div class="log-day-header"><span class="log-day-title">'+lbl+'</span><span class="log-day-meta">'+df.length+' feeds &middot; '+dtot+' ml &middot; BM '+dpct+'%</span></div><div class="log-entries">'+rows+'</div></div>';
   }).join("");
 }
 
 // Modal
-function openModal(){
+var editingFeedId=null;
+function openModal(feedId){
+  editingFeedId=feedId||null;
+  var feed=null;
+  if(editingFeedId){
+    feed=loadFeeds().find(function(f){return f.id===editingFeedId;})||null;
+  }
   var now=new Date();
-  document.getElementById("f-date").value=now.toISOString().slice(0,10);
-  document.getElementById("f-time").value=now.toTimeString().slice(0,5);
-  document.getElementById("f-bm").value="";
-  document.getElementById("f-fm").value="";
-  document.getElementById("feed-preview").innerHTML="Enter amounts above";
+  document.getElementById("f-date").value=feed?feed.date:now.toISOString().slice(0,10);
+  document.getElementById("f-time").value=feed?feed.time:now.toTimeString().slice(0,5);
+  document.getElementById("f-bm").value=feed?feed.bm:"";
+  document.getElementById("f-fm").value=feed?feed.formula:"";
+  document.getElementById("f-pump").value=(feed&&feed.pump)?feed.pump:"";
+  // breast feed state
+  var directVal=(feed&&feed.direct)?feed.direct:null;
+  setDirectBreastUI(directVal);
+  document.getElementById("feed-modal-title").innerHTML=editingFeedId?"&#x270F;&#xFE0F; Edit Feed":"&#x1F37C; Log a Feed";
+  document.getElementById("feed-save-btn").textContent=editingFeedId?"Update Feed ✓":"Save Feed ✓";
+  updatePreview();
   document.getElementById("modal-overlay").classList.remove("hidden");
   setTimeout(function(){document.getElementById("f-bm").focus();},100);
 }
-function closeModal(){document.getElementById("modal-overlay").classList.add("hidden");}
+function closeModal(){document.getElementById("modal-overlay").classList.add("hidden");editingFeedId=null;}
+
+// Breast feed direct helpers
+var _breastSide=null; // null | 'left' | 'right' | 'both'
+function setDirectBreastUI(val){
+  // val: null = off, 'left'/'right'/'both' = on with side
+  var isOn=!!val;
+  _breastSide=val||null;
+  var cb=document.getElementById("breast-checkbox");
+  var row=document.getElementById("breast-toggle-row");
+  var sideRow=document.getElementById("breast-side-row");
+  cb.className="breast-checkbox"+(isOn?" checked":"");
+  row.className="breast-toggle-row"+(isOn?" active":"");
+  if(isOn){sideRow.classList.remove("hidden");}else{sideRow.classList.add("hidden");}
+  ["left","both","right"].forEach(function(s){
+    document.getElementById("btn-"+s).className="breast-side-btn"+(val===s?" selected":"");
+  });
+}
+function toggleDirectBreast(){
+  if(_breastSide){setDirectBreastUI(null);}
+  else{setDirectBreastUI("both");}
+  updatePreview();
+}
+function selectBreastSide(side){
+  setDirectBreastUI(side);
+  updatePreview();
+}
+
 function updatePreview(){
   var bm=parseFloat(document.getElementById("f-bm").value)||0;
   var fm=parseFloat(document.getElementById("f-fm").value)||0;
   var tot=bm+fm;
-  if(tot===0){document.getElementById("feed-preview").innerHTML="Enter amounts above";return;}
-  document.getElementById("feed-preview").innerHTML='Total: <strong>'+tot+' ml</strong> &nbsp;&middot;&nbsp; <span style="color:var(--rose)">&#x1F931; '+bm+' ml BM</span> &nbsp;&middot;&nbsp; <span style="color:var(--plum)">&#x1F95B; '+fm+' ml formula</span>';
+  var parts=[];
+  if(_breastSide){var sideLabel={left:"left breast",right:"right breast",both:"both breasts"}[_breastSide];parts.push('<span style="color:var(--rose)">🤱 Direct ('+sideLabel+')</span>');}
+  if(bm>0) parts.push('<span style="color:var(--rose)">🍼 '+bm+' ml BM</span>');
+  if(fm>0) parts.push('<span style="color:var(--plum)">🥛 '+fm+' ml formula</span>');
+  if(tot>0) parts.push('<strong>'+tot+' ml total</strong>');
+  document.getElementById("feed-preview").innerHTML=parts.length?parts.join(' &middot; '):"Enter amounts above";
 }
+
 function saveFeed(){
   var date=document.getElementById("f-date").value;
   var time=document.getElementById("f-time").value;
+  var pump=document.getElementById("f-pump").value||null;
   var bm=parseFloat(document.getElementById("f-bm").value)||0;
   var fm=parseFloat(document.getElementById("f-fm").value)||0;
-  if(!date||!time||(bm===0&&fm===0)){showToast("Please fill in date, time, and at least one amount.","var(--red)");return;}
+  var direct=_breastSide||null;
+  if(!date||!time||(bm===0&&fm===0&&!direct)){showToast("Please fill in date, time, and at least one feed type.","var(--red)");return;}
   var feeds=loadFeeds();
-  feeds.push({id:uid(),date:date,time:time,bm:bm,formula:fm});
+  var isEdit=!!editingFeedId;
+  if(isEdit){
+    feeds=feeds.map(function(f){return f.id===editingFeedId?{id:f.id,date:date,time:time,pump:pump,bm:bm,formula:fm,direct:direct}:f;});
+  } else {
+    feeds.push({id:uid(),date:date,time:time,pump:pump,bm:bm,formula:fm,direct:direct});
+  }
   feeds.sort(function(a,b){return (a.date+a.time).localeCompare(b.date+b.time);});
   saveFeeds(feeds);
   closeModal();
   renderAll();
   var tot=bm+fm;
   var chips=[];
-  if(bm>0) chips.push({label:'🤱 '+bm+' ml BM',cls:'rose'});
+  if(direct){var sl={left:"◀ Left",right:"Right ▶",both:"⟺ Both"}[direct];chips.push({label:'🤱 Direct ('+sl+')',cls:'rose'});}
+  if(bm>0) chips.push({label:'🍼 '+bm+' ml BM',cls:'rose'});
   if(fm>0) chips.push({label:'🥛 '+fm+' ml formula',cls:'plum'});
-  chips.push({label:'Total: '+tot+' ml',cls:'green'});
-  showSuccess('🍼','Feed Logged!','Your little one\'s feed has been recorded.',chips);
+  if(tot>0) chips.push({label:'Total: '+tot+' ml',cls:'green'});
+  if(pump) chips.push({label:'💧 Pumped '+pump,cls:''});
+  showSuccess('🍼',isEdit?'Feed Updated!':'Feed Logged!',isEdit?'Feed entry has been updated.':'Your little guy\'s feed has been recorded.',chips);
 }
 
 // Visit Modal
-function openVisitModal(){
+var editingVisitId=null;
+function openVisitModal(visitId){
+  editingVisitId=visitId||null;
+  var visit=null;
+  if(editingVisitId){
+    visit=loadVisits().find(function(v){return v.id===editingVisitId;})||null;
+  }
   var now=new Date();
-  document.getElementById("v-date").value=now.toISOString().slice(0,10);
-  document.getElementById("v-weight").value="";
-  document.getElementById("v-height").value="";
-  document.getElementById("v-note").value="";
-  document.getElementById("visit-preview").innerHTML="Enter measurements above";
+  document.getElementById("v-date").value=visit?visit.date:now.toISOString().slice(0,10);
+  document.getElementById("v-weight").value=(visit&&visit.weight)?visit.weight:"";
+  document.getElementById("v-height").value=(visit&&visit.height)?visit.height:"";
+  document.getElementById("v-note").value=(visit&&visit.note)?visit.note:"";
+  document.getElementById("visit-modal-title").innerHTML=editingVisitId?"&#x270F;&#xFE0F; Edit Visit":"&#x1FA78; Log Doctor Visit";
+  document.getElementById("visit-save-btn").textContent=editingVisitId?"Update Visit ✓":"Save Visit ✓";
+  updateVisitPreview();
   document.getElementById("visit-modal-overlay").classList.remove("hidden");
   setTimeout(function(){document.getElementById("v-weight").focus();},100);
 }
-function closeVisitModal(){document.getElementById("visit-modal-overlay").classList.add("hidden");}
+function closeVisitModal(){document.getElementById("visit-modal-overlay").classList.add("hidden");editingVisitId=null;}
 function updateVisitPreview(){
   var w=parseFloat(document.getElementById("v-weight").value)||0;
   var h=parseFloat(document.getElementById("v-height").value)||0;
@@ -1119,18 +1255,24 @@ function saveVisit(){
   var note=document.getElementById("v-note").value.trim();
   if(!date||(w===0&&h===0)){showToast("Please enter a date and at least one measurement.","var(--red)");return;}
   var visits=loadVisits();
-  visits.push({id:uid(),date:date,weight:w||null,height:h||null,note:note||null});
+  var isEdit=!!editingVisitId;
+  if(isEdit){
+    visits=visits.map(function(v){return v.id===editingVisitId?{id:v.id,date:date,weight:w||null,height:h||null,note:note||null}:v;});
+  } else {
+    visits.push({id:uid(),date:date,weight:w||null,height:h||null,note:note||null});
+  }
   visits.sort(function(a,b){return a.date.localeCompare(b.date);});
   saveVisits(visits);
   // Update CURR_WEIGHT to latest
-  if(w) CURR_WEIGHT=w;
+  var latest=visits[visits.length-1];
+  if(latest&&latest.weight) CURR_WEIGHT=latest.weight;
   closeVisitModal();
   renderAll();
   var chips2=[];
   if(w) chips2.push({label:'⚖️ '+w+' kg',cls:'rose'});
   if(h) chips2.push({label:'📏 '+h+' cm',cls:'plum'});
   if(note) chips2.push({label:note,cls:'green'});
-  showSuccess('🩺','Visit Saved!','Doctor visit recorded. Charts updated with new measurements.',chips2);
+  showSuccess('🩺',isEdit?'Visit Updated!':'Visit Saved!',isEdit?'Doctor visit entry has been updated.':'Doctor visit recorded. Charts updated with new measurements.',chips2);
 }
 
 var pendingDelVisitId=null;
