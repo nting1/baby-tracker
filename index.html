@@ -1114,6 +1114,7 @@ function renderStats(feeds,visits){
   var t=getDayTotals(feeds);
   var rm=Math.round(CURR_WEIGHT*160),rl=Math.round(CURR_WEIGHT*140),rh=Math.round(CURR_WEIGHT*180);
   var pct=Math.round(t.dailyTotal/rm*100);
+  var gap=rm-t.dailyTotal;
   var pc=pct>=85?"var(--green)":pct>=70?"var(--amber)":"var(--red)";
   var cards=[
     {icon:"&#x2696;&#xFE0F;",val:dispW+" kg",lbl:"Weight",sub:dispDate,c:"var(--rose)"},
