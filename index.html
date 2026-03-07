@@ -155,7 +155,7 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 /* Log */
 .log-day-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px;flex-wrap:wrap;gap:4px}
 .log-day-title{font-family:var(--fd);font-size:15px;font-weight:700;color:var(--text)}
-.log-day-meta{font-size:12px;color:var(--muted)}
+.log-day-meta{font-size:13px;font-weight:700;color:var(--navy);background:rgba(26,143,227,0.09);padding:3px 10px;border-radius:20px;letter-spacing:0.1px}
 .log-entries{background:var(--card);border-radius:14px;overflow:hidden;margin-bottom:16px;box-shadow:0 3px 16px rgba(100,40,60,0.07);border:1px solid var(--border)}
 .log-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(220,160,160,0.1);transition:background 0.15s}
 .log-row:last-child{border-bottom:none}
@@ -634,8 +634,8 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
     <div class="form-grid">
       <div><label class="form-label">Date</label><input class="form-input" type="date" id="f-date" /></div>
       <div><label class="form-label">Feed Time</label><input class="form-input" type="time" id="f-time" /></div>
-      <div><label class="form-label">&#x1F931; Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
-      <div><label class="form-label">&#x1F95B; Formula (ml)</label><input class="form-input" type="number" id="f-fm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div><label class="form-label">🍼 Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div><label class="form-label">🥛 Formula (ml)</label><input class="form-input" type="number" id="f-fm" placeholder="0" min="0" oninput="updatePreview()" /></div>
       <div style="grid-column:1/-1"><label class="form-label">&#x1F4A7; Pump Time <span style="color:var(--subtle);font-weight:400;font-size:11px">(optional &mdash; when you pumped)</span></label><input class="form-input" type="time" id="f-pump" /></div>
       <div class="breast-section">
         <div class="breast-toggle-row" id="breast-toggle-row" onclick="toggleDirectBreast()">
@@ -1121,8 +1121,8 @@ function renderStats(feeds,visits){
   var cards=[
     {icon:"&#x2696;&#xFE0F;",val:dispW+" kg",lbl:"Weight",sub:dispDate,c:"var(--rose)"},
     {icon:"&#x1F4CF;",val:dispH+" cm",lbl:"Height",sub:dispDate,c:"var(--plum)"},
-    {icon:"&#x1F931;",val:t.dailyBM+" ml",lbl:"Breast Milk",sub:"today",c:"var(--rose)"},
-    {icon:"&#x1F95B;",val:t.dailyFormula+" ml",lbl:"Formula",sub:"today",c:"var(--plum)"},
+    {icon:"🍼",val:t.dailyBM+" ml",lbl:"Breast Milk",sub:"today",c:"var(--rose)"},
+    {icon:"🥛",val:t.dailyFormula+" ml",lbl:"Formula",sub:"today",c:"var(--plum)"},
     {icon:"&#x1F4CA;",val:t.dailyTotal+" ml",lbl:"Total",sub:"today",c:"var(--blue)"},
     {icon:"&#x2705;",val:rl+"&ndash;"+rh,lbl:"Target Range",sub:"ml/day",c:"var(--green)"},
     {icon:"&#x1F4A7;",val:pct+"%",lbl:"Coverage",sub:"of mid-target",c:pc}
@@ -1385,8 +1385,8 @@ function renderLog(feeds){
       return gapHtml+
         '<div class="log-row"><span class="log-time">'+f.time+'</span><div class="log-amounts">'+
         breastHtml+
-        (f.bm>0?'<span class="log-bm">&#x1F931; '+f.bm+' ml</span>':"")+
-        (f.formula>0?'<span class="log-fm">&#x1F95B; '+f.formula+' ml</span>':"")+
+        (f.bm>0?'<span class="log-bm">🍼 '+f.bm+' ml</span>':"")+
+        (f.formula>0?'<span class="log-fm">🥛 '+f.formula+' ml</span>':"")+
         (tot>0?'<span class="log-tot">'+tot+' ml</span>':"")+
         pumpHtml+
         (tot>0?'<div class="log-bar-wrap"><div class="log-mini-bar"><div class="log-mini-fill" style="width:'+bp+'%"></div></div><span class="log-bmpct">'+bp+'%</span></div>':"")+
