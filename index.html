@@ -474,6 +474,7 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
     <button class="tab-btn"        data-tab="projection" onclick="switchTab(this)">&#x1F4C8; Projections</button>
     <button class="tab-btn"        data-tab="bmonly"     onclick="switchTab(this)">&#x1F931; BM Plan</button>
     <button class="tab-btn"        data-tab="log"        onclick="switchTab(this)">&#x1F4CB; Feed Log</button>
+    <button class="tab-btn"        data-tab="milestones" onclick="switchTab(this)">&#x1F4DA; Milestones</button>
   </nav>
 
   <main class="content">
@@ -580,6 +581,9 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
         <button class="add-feed-inline" onclick="openModal()">+ Add Feed</button>
       </div>
       <div id="log-container"></div>
+    </div>
+    <div class="tab-panel" id="tab-milestones">
+      <div id="milestones-container"></div>
     </div>
   </main>
 
@@ -714,8 +718,12 @@ var WHO_W=[
 ];
 var WHO_H=[
   {w:0, p3:46.1,p50:49.9,p97:53.7},
+  {w:2, p3:48.5,p50:52.3,p97:56.2},
   {w:4, p3:50.8,p50:54.7,p97:58.6},
+  {w:6, p3:51.7,p50:55.7,p97:59.6},
   {w:7, p3:52.5,p50:56.6,p97:60.6},
+  {w:8, p3:53.2,p50:57.3,p97:61.4},
+  {w:10,p3:54.3,p50:58.4,p97:62.5},
   {w:12,p3:55.3,p50:59.4,p97:63.6},
   {w:16,p3:57.6,p50:61.9,p97:66.1},
   {w:20,p3:59.7,p50:64.0,p97:68.4},
@@ -836,6 +844,7 @@ function renderAll(){
   renderProjection(feeds);
   renderBMOnly(feeds);
   renderLog(feeds);
+  renderMilestones();
 }
 
 function ageAtDate(dateStr){
@@ -945,17 +954,14 @@ function renderGrowth(visits){
     var wk=Math.round((d-birth)/(1000*60*60*24*7));
     return {wk:wk,weight:v.weight,height:v.height};
   });
-  // Build sparse arrays aligned to WHO_W x-axis labels
+  // Both charts share WHO_W x-axis labels for consistent intervals
   var wWeightData=WHO_W.map(function(){return null;});
-  var wHeightData=WHO_H.map(function(){return null;});
+  var wHeightData=WHO_W.map(function(){return null;});
   wWpts.forEach(function(pt){
-    // find closest WHO_W index
     var best=-1,bestDist=999;
     WHO_W.forEach(function(d,i){if(Math.abs(d.w-pt.wk)<bestDist){bestDist=Math.abs(d.w-pt.wk);best=i;}});
     if(best>=0&&pt.weight)wWeightData[best]=pt.weight;
-    var bestH=-1,bestDistH=999;
-    WHO_H.forEach(function(d,i){if(Math.abs(d.w-pt.wk)<bestDistH){bestDistH=Math.abs(d.w-pt.wk);bestH=i;}});
-    if(bestH>=0&&pt.height)wHeightData[bestH]=pt.height;
+    if(best>=0&&pt.height)wHeightData[best]=pt.height;
   });
 
   mkChart("chart-weight",{type:"line",
@@ -975,18 +981,18 @@ function renderGrowth(visits){
       scales:{x:CD.scales.x,y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,min:2,max:12,title:{display:true,text:"kg",color:"#b09090",font:{size:11}}}}}});
 
   mkChart("chart-height",{type:"line",
-    data:{labels:WHO_H.map(function(d){return "Wk "+d.w;}),
+    data:{labels:WHO_W.map(function(d){return "Wk "+d.w;}),
       datasets:[
-        {label:"97th",data:WHO_H.map(function(d){return d.p97;}),borderColor:"rgba(200,170,220,0.5)",borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false},
-        {label:"50th",data:WHO_H.map(function(d){return d.p50;}),borderColor:"rgba(155,89,182,0.9)",borderWidth:2.5,pointRadius:0,fill:false},
-        {label:"3rd", data:WHO_H.map(function(d){return d.p3;}), borderColor:"rgba(200,170,220,0.4)",borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false},
+        {label:"97th",data:WHO_W.map(function(d){var h=WHO_H.find(function(x){return x.w===d.w;});return h?h.p97:null;}),borderColor:"rgba(200,170,220,0.5)",borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false,spanGaps:true},
+        {label:"50th",data:WHO_W.map(function(d){var h=WHO_H.find(function(x){return x.w===d.w;});return h?h.p50:null;}),borderColor:"rgba(155,89,182,0.9)",borderWidth:2.5,pointRadius:0,fill:false,spanGaps:true},
+        {label:"3rd", data:WHO_W.map(function(d){var h=WHO_H.find(function(x){return x.w===d.w;});return h?h.p3:null;}),borderColor:"rgba(200,170,220,0.4)",borderDash:[3,3],borderWidth:1,pointRadius:0,fill:false,spanGaps:true},
         {label:"Measurements",data:wHeightData,
           borderColor:"rgba(155,89,182,1)",backgroundColor:"rgba(155,89,182,1)",
           pointRadius:8,pointStyle:"star",showLine:true,fill:false,
           borderWidth:1.5,tension:0.3,spanGaps:false}
       ]},
     options:{responsive:true,maintainAspectRatio:false,plugins:CD.plugins,
-      scales:{x:CD.scales.x,y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,min:44,max:74,title:{display:true,text:"cm",color:"#b09090",font:{size:11}}}}}});
+      scales:{x:CD.scales.x,y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,min:44,max:74,title:{display:true,text:"cm",color:"#b09090",font:{size:11}}}}}})
 }
 
 function renderVisits(visits){
@@ -1310,6 +1316,292 @@ function confirmDelete(){
 }
 
 // Tab switch
+
+// ── Milestones Tab ──────────────────────────────────────────────────────────
+var MILESTONE_DATA = [
+  {
+    week: "0–2", label: "Newborn", emoji: "🌱",
+    milestones: [
+      "Turns head toward sounds and voices",
+      "Responds to light — may squint or blink",
+      "Strong reflexes: rooting, sucking, grasping",
+      "Prefers faces over other shapes",
+      "Sleeps 16–18 hours per day in short bursts"
+    ],
+    tips: [
+      "Skin-to-skin contact regulates temperature and heart rate",
+      "Talk and sing during every feed — your voice is their favourite sound",
+      "Cluster feeding is completely normal and helps establish milk supply",
+      "Track wet nappies: 6+ per day signals good hydration",
+      "Newborn vision is clearest at 20–30 cm — perfect feeding distance"
+    ],
+    articles: [
+      { title: "Your newborn's developmental milestones", url: "https://www.babycenter.com/baby/baby-development/your-newborns-developmental-milestones_10357636", source: "BabyCenter" },
+      { title: "Newborn senses and reflexes explained", url: "https://www.whattoexpect.com/first-year/newborn-senses/", source: "What to Expect" },
+      { title: "AAP: What to expect in the first month", url: "https://www.healthychildren.org/English/ages-stages/baby/Pages/Developmental-Milestones-1-Month.aspx", source: "HealthyChildren (AAP)" }
+    ]
+  },
+  {
+    week: "3–4", label: "One Month", emoji: "🌿",
+    milestones: [
+      "First social smiles may appear (usually around week 6, can start earlier)",
+      "Begins to focus on moving objects",
+      "Holds head up briefly during tummy time",
+      "Recognises your face and voice",
+      "More alert periods — up to 1 hour at a time"
+    ],
+    tips: [
+      "Start tummy time from day one — even 2–3 minutes several times a day counts",
+      "High-contrast black-and-white images are visually stimulating at this age",
+      "Follow wake windows: ~45–60 min is normal before overtiredness sets in",
+      "Respond to cries promptly — you cannot spoil a newborn",
+      "Begin a simple feed-play-sleep routine to build predictability"
+    ],
+    articles: [
+      { title: "1-month-old baby development", url: "https://www.babycenter.com/baby/baby-development/1-month-old-baby-development_10354355", source: "BabyCenter" },
+      { title: "Tummy time: why it matters", url: "https://www.healthychildren.org/English/ages-stages/baby/Pages/The-Importance-of-Tummy-Time.aspx", source: "HealthyChildren (AAP)" },
+      { title: "Sleep patterns in the first months", url: "https://www.raisingchildren.net.au/newborns/sleep/understanding-sleep/newborn-sleep", source: "Raising Children Network" }
+    ]
+  },
+  {
+    week: "5–6", label: "Six Weeks", emoji: "😊",
+    milestones: [
+      "Social smiles become reliable and intentional",
+      "Coos and makes vowel sounds ('ooh', 'aah')",
+      "Tracks moving objects with eyes across midline",
+      "Holds head at 45° during tummy time",
+      "Shows excitement — kicks legs, waves arms"
+    ],
+    tips: [
+      "Mimic their sounds back to them — this is their first 'conversation'",
+      "Six-week growth spurt is common — expect increased feeding for 2–3 days",
+      "A 6-week paediatrician check is standard — great time for feeding questions",
+      "Limit screen time for caregivers during feeds — baby learns from your face",
+      "Introduce a consistent bedtime routine, even simple: feed, bath, song, sleep"
+    ],
+    articles: [
+      { title: "6-week-old baby development", url: "https://www.babycenter.com/baby/baby-development/6-week-old-baby-development_10356994", source: "BabyCenter" },
+      { title: "Your baby's first smiles and social development", url: "https://www.zerotothree.org/resource/your-babys-first-smiles-and-social-development/", source: "Zero to Three" },
+      { title: "Understanding baby growth spurts", url: "https://www.nct.org.uk/baby-toddler/growth/growth-spurts-babies", source: "NCT UK" }
+    ]
+  },
+  {
+    week: "7–8", label: "Two Months", emoji: "🗣️",
+    milestones: [
+      "Smiles spontaneously, especially at familiar faces",
+      "Begins to self-calm with hands to mouth",
+      "Holds head steady when supported upright",
+      "Follows objects 180° (side to side)",
+      "Responds to facial expressions — tries to copy them"
+    ],
+    tips: [
+      "2-month vaccines are due — completely safe and important",
+      "Baby may be fussier after vaccines — extra feeds and cuddles help",
+      "Start reading aloud — any book works, baby loves rhythm and your voice",
+      "\"Serve and return\" interactions build brain architecture — respond to every coo",
+      "Watch for early signs of colic: inconsolable crying 3+ hrs, 3+ days/week"
+    ],
+    articles: [
+      { title: "2-month-old baby development", url: "https://www.babycenter.com/baby/baby-development/2-month-old-baby-development_10354361", source: "BabyCenter" },
+      { title: "Two-month well-visit: what to expect", url: "https://www.healthychildren.org/English/ages-stages/baby/Pages/2-Month-Checkup.aspx", source: "HealthyChildren (AAP)" },
+      { title: "Serve and return interaction shapes brain circuitry", url: "https://developingchild.harvard.edu/science/key-concepts/serve-and-return/", source: "Harvard Center on the Developing Child" }
+    ]
+  },
+  {
+    week: "9–12", label: "Three Months", emoji: "🎵",
+    milestones: [
+      "Laughs out loud for the first time",
+      "Babbles with expression — chains of sounds",
+      "Pushes up on forearms during tummy time",
+      "Opens and shuts hands; brings hands together",
+      "Recognises own name when called"
+    ],
+    tips: [
+      "Sleep may consolidate — some babies start longer night stretches now",
+      "Introduce a play mat with hanging toys to encourage reaching",
+      "Baby's vision now reaches across a room — great for eye contact games",
+      "3-month growth spurt expected — temporary feeding increase is normal",
+      "Gently narrate your day: 'Now we're changing your nappy…' builds language"
+    ],
+    articles: [
+      { title: "3-month-old baby development", url: "https://www.babycenter.com/baby/baby-development/3-month-old-baby-development_10354365", source: "BabyCenter" },
+      { title: "3-month milestones: what to look for", url: "https://www.cdc.gov/ncbddd/actearly/milestones/milestones-2mo.html", source: "CDC Act Early" },
+      { title: "Baby sleep: what changes at 3 months", url: "https://www.babysleepsite.com/baby-sleep-patterns/3-month-old-sleep/", source: "Baby Sleep Site" }
+    ]
+  },
+  {
+    week: "13–16", label: "Four Months", emoji: "🤲",
+    milestones: [
+      "Rolls from tummy to back (back to tummy comes later)",
+      "Reaches for and grabs objects with both hands",
+      "Bears weight on legs when held standing",
+      "Responds to own name consistently",
+      "Imitates sounds and facial expressions"
+    ],
+    tips: [
+      "4-month sleep regression is one of the toughest — caused by maturing sleep cycles",
+      "Drooling and mouthing objects begins — teething prep, not necessarily teething yet",
+      "Offer safe rattles and soft toys to encourage grasping and hand-eye coordination",
+      "4-month vaccines are due — check with your paediatrician",
+      "Talk about emotions: 'You look happy!' builds emotional vocabulary early"
+    ],
+    articles: [
+      { title: "4-month-old baby development", url: "https://www.babycenter.com/baby/baby-development/4-month-old-baby-development_10354371", source: "BabyCenter" },
+      { title: "The 4-month sleep regression explained", url: "https://www.takingcarababies.com/4-month-sleep-regression/", source: "Taking Cara Babies" },
+      { title: "4-month well-child visit", url: "https://www.healthychildren.org/English/ages-stages/baby/Pages/4-Month-Checkup.aspx", source: "HealthyChildren (AAP)" }
+    ]
+  },
+  {
+    week: "17–20", label: "Five Months", emoji: "🔍",
+    milestones: [
+      "Rolls both ways — tummy to back and back to tummy",
+      "Sits with support; tries to pull to sit",
+      "Transfers objects hand to hand",
+      "Shows curiosity — reaches for everything",
+      "Recognises familiar people vs strangers"
+    ],
+    tips: [
+      "Begin watching for readiness signs for solids (sits with support, interest in food) — most start at 6 months",
+      "Stranger anxiety may start appearing — completely normal developmental step",
+      "Offer a mirror — babies this age are fascinated by their own reflection",
+      "Supervised floor time builds core strength for sitting and crawling",
+      "Continue reading daily — point to pictures and name objects"
+    ],
+    articles: [
+      { title: "5-month-old baby development", url: "https://www.babycenter.com/baby/baby-development/5-month-old-baby-development_10354379", source: "BabyCenter" },
+      { title: "Signs your baby is ready for solid foods", url: "https://www.nhs.uk/conditions/baby/weaning-and-feeding/signs-your-baby-is-ready-for-solid-foods/", source: "NHS UK" },
+      { title: "How babies develop object permanence", url: "https://www.zerotothree.org/resource/thinking-it-through-problem-solving-and-critical-thinking/", source: "Zero to Three" }
+    ]
+  },
+  {
+    week: "21–26", label: "Six Months", emoji: "🍽️",
+    milestones: [
+      "Sits without support for short periods",
+      "Starts solid foods alongside breast milk / formula",
+      "Says consonant sounds: 'ba', 'da', 'ma'",
+      "Responds to own name; looks when called",
+      "Passes objects between hands with ease"
+    ],
+    tips: [
+      "Start solids with single-ingredient purees or soft finger foods (baby-led weaning)",
+      "Breast milk or formula remains the primary nutrition — solids are for exploration",
+      "6-month vaccines are due, including flu shot in most countries",
+      "Begin a cup: introduce an open or straw cup with water at meals",
+      "Babbling becomes more complex — respond as if it's real conversation"
+    ],
+    articles: [
+      { title: "6-month-old baby development", url: "https://www.babycenter.com/baby/baby-development/6-month-old-baby-development_10354387", source: "BabyCenter" },
+      { title: "Starting solid foods: a complete guide", url: "https://www.healthychildren.org/English/ages-stages/baby/feeding-nutrition/Pages/Starting-Solid-Foods.aspx", source: "HealthyChildren (AAP)" },
+      { title: "Baby-led weaning: what you need to know", url: "https://www.nct.org.uk/baby-toddler/weaning/starting-weaning/what-baby-led-weaning", source: "NCT UK" }
+    ]
+  }
+];
+
+function getCurrentWeek(){
+  var birth=new Date("2026-01-09T00:00:00");
+  var now=new Date();
+  return Math.floor((now-birth)/(1000*60*60*24*7));
+}
+
+function renderMilestones(){
+  var currentWeek=getCurrentWeek();
+  var el=document.getElementById("milestones-container");
+  if(!el) return;
+
+  var html='';
+
+  // Hero current-week banner
+  var currentEntry=null;
+  for(var i=0;i<MILESTONE_DATA.length;i++){
+    var range=MILESTONE_DATA[i].week.split("–");
+    var lo=parseInt(range[0]),hi=parseInt(range[1]||range[0]);
+    if(currentWeek>=lo&&currentWeek<=hi){currentEntry=MILESTONE_DATA[i];break;}
+  }
+  if(!currentEntry&&currentWeek>26) currentEntry=MILESTONE_DATA[MILESTONE_DATA.length-1];
+  if(!currentEntry) currentEntry=MILESTONE_DATA[0];
+
+  html+='<div style="background:linear-gradient(135deg,var(--rose),var(--plum));border-radius:18px;padding:20px 22px;margin-bottom:22px;color:#fff;position:relative;overflow:hidden">';
+  html+='<div style="position:absolute;right:-10px;top:-10px;font-size:70px;opacity:0.15;line-height:1">'+currentEntry.emoji+'</div>';
+  html+='<div style="font-size:11px;font-weight:600;opacity:0.85;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:4px">Baby is currently</div>';
+  html+='<div style="font-size:26px;font-weight:700;font-family:var(--fd);margin-bottom:2px">Week '+currentWeek+'</div>';
+  html+='<div style="font-size:14px;opacity:0.9">'+currentEntry.label+' stage &middot; '+currentEntry.emoji+'</div>';
+  html+='</div>';
+
+  // Weekly accordion cards
+  for(var j=0;j<MILESTONE_DATA.length;j++){
+    var d=MILESTONE_DATA[j];
+    var range2=d.week.split("–");
+    var lo2=parseInt(range2[0]),hi2=parseInt(range2[1]||range2[0]);
+    var isCurrent=currentWeek>=lo2&&currentWeek<=hi2;
+    var isPast=currentWeek>hi2;
+    var statusDot=isCurrent?'<span style="display:inline-block;width:8px;height:8px;background:#4ade80;border-radius:50%;margin-right:6px;box-shadow:0 0 6px #4ade80"></span>':
+                  isPast?'<span style="display:inline-block;width:8px;height:8px;background:rgba(255,255,255,0.3);border-radius:50%;margin-right:6px"></span>':'';
+    var headerBg=isCurrent?'linear-gradient(135deg,rgba(26,143,227,0.12),rgba(23,162,196,0.08))':'transparent';
+    var borderCol=isCurrent?'var(--rose)':'var(--border)';
+
+    html+='<div class="card" style="margin-bottom:14px;padding:0;border:1.5px solid '+borderCol+';border-radius:16px;overflow:hidden">';
+
+    // Accordion header
+    html+='<div onclick="toggleMilestoneCard(this)" style="cursor:pointer;padding:16px 18px;background:'+headerBg+';display:flex;justify-content:space-between;align-items:center;user-select:none">';
+    html+='<div style="display:flex;align-items:center;gap:10px">';
+    html+='<span style="font-size:26px">'+d.emoji+'</span>';
+    html+='<div>';
+    html+='<div style="font-weight:700;font-size:14px;color:var(--text)">'+statusDot+'Week '+d.week+' &middot; '+d.label+'</div>';
+    html+='<div style="font-size:11px;color:var(--muted);margin-top:2px">'+d.milestones.length+' milestones &middot; '+d.tips.length+' tips &middot; '+d.articles.length+' articles</div>';
+    html+='</div></div>';
+    html+='<span class="ms-chevron" style="font-size:18px;color:var(--subtle);transition:transform 0.25s">'+(isCurrent?'▲':'▼')+'</span>';
+    html+='</div>';
+
+    // Accordion body
+    html+='<div class="ms-body" style="display:'+(isCurrent?'block':'none')+';padding:0 18px 18px">';
+
+    // Milestones
+    html+='<div style="margin-bottom:14px">';
+    html+='<div style="font-size:11px;font-weight:700;color:var(--rose);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px;padding-top:14px;border-top:1px solid var(--border)">🎯 Developmental Milestones</div>';
+    for(var m=0;m<d.milestones.length;m++){
+      html+='<div style="display:flex;gap:10px;margin-bottom:6px;font-size:13px;color:var(--text);line-height:1.45">';
+      html+='<span style="color:var(--rose);flex-shrink:0;margin-top:1px">✦</span><span>'+d.milestones[m]+'</span></div>';
+    }
+    html+='</div>';
+
+    // Tips
+    html+='<div style="margin-bottom:14px">';
+    html+='<div style="font-size:11px;font-weight:700;color:var(--plum);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px;padding-top:14px;border-top:1px solid var(--border)">💡 Tips for This Week</div>';
+    for(var t=0;t<d.tips.length;t++){
+      html+='<div style="background:rgba(23,162,196,0.07);border-left:3px solid var(--plum);border-radius:0 8px 8px 0;padding:8px 10px;margin-bottom:6px;font-size:13px;color:var(--text);line-height:1.45">'+d.tips[t]+'</div>';
+    }
+    html+='</div>';
+
+    // Articles
+    html+='<div>';
+    html+='<div style="font-size:11px;font-weight:700;color:var(--blue);letter-spacing:0.6px;text-transform:uppercase;margin-bottom:8px;padding-top:14px;border-top:1px solid var(--border)">📖 Recommended Reading</div>';
+    for(var a=0;a<d.articles.length;a++){
+      var art=d.articles[a];
+      html+='<a href="'+art.url+'" target="_blank" rel="noopener" style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:rgba(26,143,227,0.05);border:1px solid rgba(26,143,227,0.15);border-radius:10px;margin-bottom:6px;text-decoration:none;transition:background 0.2s" onmouseover="this.style.background=\'rgba(26,143,227,0.12)\'" onmouseout="this.style.background=\'rgba(26,143,227,0.05)\'">';
+      html+='<span style="font-size:20px;flex-shrink:0">📄</span>';
+      html+='<div style="min-width:0">';
+      html+='<div style="font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+art.title+'</div>';
+      html+='<div style="font-size:11px;color:var(--subtle);margin-top:1px">'+art.source+' &rsaquo;</div>';
+      html+='</div></a>';
+    }
+    html+='</div>';
+
+    html+='</div></div>'; // end body + card
+  }
+
+  el.innerHTML=html;
+}
+
+function toggleMilestoneCard(header){
+  var body=header.nextElementSibling;
+  var chevron=header.querySelector(".ms-chevron");
+  var isOpen=body.style.display!=="none";
+  body.style.display=isOpen?"none":"block";
+  chevron.textContent=isOpen?"▼":"▲";
+  chevron.style.transform=isOpen?"":"rotate(0deg)";
+}
+// ── End Milestones ───────────────────────────────────────────────────────────
+
 function switchTab(btn){
   document.querySelectorAll(".tab-btn").forEach(function(b){b.classList.remove("active");});
   document.querySelectorAll(".tab-panel").forEach(function(p){p.classList.remove("active");});
@@ -1328,6 +1620,7 @@ function switchTab(btn){
   if(btn.dataset.tab==="visits")renderVisits(visits);
   if(btn.dataset.tab==="projection")renderProjection(feeds);
   if(btn.dataset.tab==="bmonly")renderBMOnly(feeds);
+  if(btn.dataset.tab==="milestones")renderMilestones();
 }
 
 // Success card
