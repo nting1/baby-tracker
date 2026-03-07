@@ -6,6 +6,38 @@
 <title>Little Guy's Feeding Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script type="module">
+// ── FIREBASE CONFIG ── Replace these values from your Firebase console ──────
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const FIREBASE_CONFIG = {
+  apiKey:            "AIzaSyDxFXYASDP7tKcDM0eabw6Qkf6zsKfmMmc",
+  authDomain:        "baby-tracker-b9a20.firebaseapp.com",
+  projectId:         "baby-tracker-b9a20",
+  storageBucket:     "baby-tracker-b9a20.firebasestorage.app",
+  messagingSenderId: "117914013705",
+  appId:             "1:117914013705:web:4c634a34c042711459e8d8"
+};
+
+const _fbApp = initializeApp(FIREBASE_CONFIG);
+const _db    = getFirestore(_fbApp);
+
+// Expose DB helpers to global scope so existing code can call them
+window._db         = _db;
+window._collection = collection;
+window._doc        = doc;
+window._getDocs    = getDocs;
+window._setDoc     = setDoc;
+window._deleteDoc  = deleteDoc;
+window._onSnapshot = onSnapshot;
+window._writeBatch = writeBatch;
+window._fbReady    = true;
+
+// Notify app that Firebase is ready
+document.dispatchEvent(new Event("fbReady"));
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -684,6 +716,221 @@ var SITE_PASSWORD = "littleone";
 
 var STORAGE_KEY = "bft_feeds_v1";
 var VISITS_KEY  = "bft_visits_v1";
+
+// ── Firebase sync state ────────────────────────────────────────────────────
+var _cachedFeeds  = null;   // in-memory cache, always authoritative after first load
+var _cachedVisits = null;
+var _syncStatus   = "init"; // "init" | "synced" | "offline"
+var _unsubFeeds   = null;   // Firestore real-time listener unsubscribe fn
+var _unsubVisits  = null;
+
+function setSyncBadge(status){
+  _syncStatus = status;
+  var badge = document.getElementById("sync-badge");
+  if(!badge) return;
+  if(status === "synced"){
+    badge.textContent = "☁ Synced";
+    badge.style.background = "rgba(74,222,128,0.18)";
+    badge.style.color = "#166534";
+  } else if(status === "saving"){
+    badge.textContent = "↑ Saving…";
+    badge.style.background = "rgba(251,191,36,0.18)";
+    badge.style.color = "#92400e";
+  } else if(status === "offline"){
+    badge.textContent = "⚡ Offline";
+    badge.style.background = "rgba(239,68,68,0.18)";
+    badge.style.color = "#991b1b";
+  } else {
+    badge.textContent = "⟳ Connecting…";
+    badge.style.background = "rgba(99,179,237,0.18)";
+    badge.style.color = "#1e3a5f";
+  }
+}
+
+// ── Local storage fallback ─────────────────────────────────────────────────
+function _lsGetFeeds(){
+  try{var s=localStorage.getItem(STORAGE_KEY);return s?JSON.parse(s):null;}catch(e){return null;}
+}
+function _lsSetFeeds(f){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(f));}catch(e){}}
+function _lsGetVisits(){
+  try{var s=localStorage.getItem(VISITS_KEY);return s?JSON.parse(s):null;}catch(e){return null;}
+}
+function _lsSetVisits(v){try{localStorage.setItem(VISITS_KEY,JSON.stringify(v));}catch(e){}}
+
+// ── Firestore helpers ──────────────────────────────────────────────────────
+function _isFirebaseReady(){
+  return !!(window._fbReady && window._db);
+}
+
+function _feedsCol(){ return window._collection(window._db, "feeds"); }
+function _visitsCol(){ return window._collection(window._db, "visits"); }
+
+// Write a single feed doc to Firestore
+function _fsSetFeed(feed){
+  if(!_isFirebaseReady()) return Promise.resolve();
+  return window._setDoc(window._doc(window._db,"feeds",feed.id), feed);
+}
+// Delete a single feed doc
+function _fsDeleteFeed(id){
+  if(!_isFirebaseReady()) return Promise.resolve();
+  return window._deleteDoc(window._doc(window._db,"feeds",id));
+}
+// Write a single visit doc
+function _fsSetVisit(visit){
+  if(!_isFirebaseReady()) return Promise.resolve();
+  return window._setDoc(window._doc(window._db,"visits",visit.id), visit);
+}
+// Delete a single visit doc
+function _fsDeleteVisit(id){
+  if(!_isFirebaseReady()) return Promise.resolve();
+  return window._deleteDoc(window._doc(window._db,"visits",id));
+}
+
+// ── Real-time listeners ────────────────────────────────────────────────────
+// Called once after login — subscribes to live Firestore updates
+function startFirebaseSync(){
+  if(!_isFirebaseReady()){
+    // Firebase not configured yet — use localStorage only
+    setSyncBadge("offline");
+    if(!_cachedFeeds)  _cachedFeeds  = migrateDates(_lsGetFeeds() || JSON.parse(JSON.stringify(SEED_FEEDS)));
+    if(!_cachedVisits) _cachedVisits = _lsGetVisits() || JSON.parse(JSON.stringify(SEED_VISITS));
+    renderAll();
+    return;
+  }
+  setSyncBadge("init");
+
+  // Feeds listener
+  _unsubFeeds = window._onSnapshot(_feedsCol(), function(snap){
+    var docs = [];
+    snap.forEach(function(d){ docs.push(d.data()); });
+    if(docs.length === 0 && _cachedFeeds === null){
+      // First run — seed Firestore with default data
+      _seedFirestore();
+      return;
+    }
+    // Upsert any seed entries missing from Firestore (e.g. newly added seeds)
+    _patchMissingSeeds(docs);
+    docs.sort(function(a,b){return (a.date+a.time).localeCompare(b.date+b.time);});
+    _cachedFeeds = migrateDates(docs);
+    _lsSetFeeds(_cachedFeeds); // keep local copy for offline
+    setSyncBadge("synced");
+    renderAll();
+  }, function(err){
+    console.warn("Feeds listener error:", err);
+    setSyncBadge("offline");
+    if(!_cachedFeeds) _cachedFeeds = migrateDates(_lsGetFeeds() || JSON.parse(JSON.stringify(SEED_FEEDS)));
+    renderAll();
+  });
+
+  // Visits listener
+  _unsubVisits = window._onSnapshot(_visitsCol(), function(snap){
+    var docs = [];
+    snap.forEach(function(d){ docs.push(d.data()); });
+    docs.sort(function(a,b){return a.date.localeCompare(b.date);});
+    _cachedVisits = docs.length > 0 ? docs : (JSON.parse(JSON.stringify(SEED_VISITS)));
+    _lsSetVisits(_cachedVisits);
+    renderAll();
+  }, function(err){
+    console.warn("Visits listener error:", err);
+    if(!_cachedVisits) _cachedVisits = _lsGetVisits() || JSON.parse(JSON.stringify(SEED_VISITS));
+  });
+}
+
+function stopFirebaseSync(){
+  if(_unsubFeeds)  { _unsubFeeds();  _unsubFeeds  = null; }
+  if(_unsubVisits) { _unsubVisits(); _unsubVisits = null; }
+  _cachedFeeds  = null;
+  _cachedVisits = null;
+}
+
+// Seed Firestore on very first use (empty database)
+function _seedFirestore(){
+  if(!_isFirebaseReady()) return;
+  var batch = window._writeBatch(window._db);
+  var seeds  = JSON.parse(JSON.stringify(SEED_FEEDS));
+  seeds.forEach(function(f){
+    batch.set(window._doc(window._db,"feeds",f.id), f);
+  });
+  var vseeds = JSON.parse(JSON.stringify(SEED_VISITS));
+  vseeds.forEach(function(v){
+    batch.set(window._doc(window._db,"visits",v.id), v);
+  });
+  batch.commit().catch(function(e){ console.warn("Seed error:", e); });
+}
+
+// Patch: after first snapshot loads, upsert any seed entries missing from Firestore
+// (handles the case where new seed entries are added after initial setup)
+function _patchMissingSeeds(existingDocs){
+  if(!_isFirebaseReady()) return;
+  var existingIds = {};
+  existingDocs.forEach(function(d){ existingIds[d.id] = true; });
+  var missing = JSON.parse(JSON.stringify(SEED_FEEDS)).filter(function(f){
+    return !existingIds[f.id];
+  });
+  if(missing.length === 0) return;
+  console.log("Patching", missing.length, "missing seed feeds to Firestore...");
+  var batch = window._writeBatch(window._db);
+  missing.forEach(function(f){
+    batch.set(window._doc(window._db,"feeds",f.id), f);
+  });
+  batch.commit()
+    .then(function(){ console.log("Patch complete."); })
+    .catch(function(e){ console.warn("Patch error:", e); });
+}
+
+// ── Public data API (same interface as before) ─────────────────────────────
+function loadFeeds(){
+  return _cachedFeeds || migrateDates(_lsGetFeeds() || JSON.parse(JSON.stringify(SEED_FEEDS)));
+}
+function loadVisits(){
+  return _cachedVisits || _lsGetVisits() || JSON.parse(JSON.stringify(SEED_VISITS));
+}
+
+// saveFeeds: write full array to cache + LS, then sync each changed doc to Firestore
+function saveFeeds(feeds){
+  feeds.sort(function(a,b){return (a.date+a.time).localeCompare(b.date+b.time);});
+  _cachedFeeds = feeds;
+  _lsSetFeeds(feeds);
+  if(!_isFirebaseReady()){ setSyncBadge("offline"); return; }
+  setSyncBadge("saving");
+  // Diff: write all (small collection, cheap)
+  var batch = window._writeBatch(window._db);
+  feeds.forEach(function(f){
+    batch.set(window._doc(window._db,"feeds",f.id), f);
+  });
+  batch.commit()
+    .then(function(){ setSyncBadge("synced"); })
+    .catch(function(e){ console.warn("saveFeeds error:", e); setSyncBadge("offline"); });
+}
+
+function saveVisits(visits){
+  visits.sort(function(a,b){return a.date.localeCompare(b.date);});
+  _cachedVisits = visits;
+  _lsSetVisits(visits);
+  if(!_isFirebaseReady()){ setSyncBadge("offline"); return; }
+  setSyncBadge("saving");
+  var batch = window._writeBatch(window._db);
+  visits.forEach(function(v){
+    batch.set(window._doc(window._db,"visits",v.id), v);
+  });
+  batch.commit()
+    .then(function(){ setSyncBadge("synced"); })
+    .catch(function(e){ console.warn("saveVisits error:", e); setSyncBadge("offline"); });
+}
+
+// Single-doc delete helpers (used by confirmDelete)
+function deleteFeedById(id){
+  _cachedFeeds = (_cachedFeeds||[]).filter(function(f){return f.id!==id;});
+  _lsSetFeeds(_cachedFeeds);
+  _fsDeleteFeed(id).then(function(){ setSyncBadge("synced"); })
+    .catch(function(e){ console.warn("deleteFeed error:",e); setSyncBadge("offline"); });
+}
+function deleteVisitById(id){
+  _cachedVisits = (_cachedVisits||[]).filter(function(v){return v.id!==id;});
+  _lsSetVisits(_cachedVisits);
+  _fsDeleteVisit(id).then(function(){ setSyncBadge("synced"); })
+    .catch(function(e){ console.warn("deleteVisit error:",e); setSyncBadge("offline"); });
+}
 var SESSION_KEY = "bft_session";
 var BIRTH_DATE  = new Date("2026-01-09");
 var MEAS_WEIGHT = 5.02;
@@ -695,12 +942,15 @@ var SEED_VISITS = [
 ];
 
 var SEED_FEEDS = [
-  {id:"s1",date:"2026-03-06",time:"21:45",bm:70, formula:0 },
-  {id:"s2",date:"2026-03-07",time:"01:45",bm:75, formula:35},
-  {id:"s3",date:"2026-03-07",time:"06:00",bm:90, formula:35},
-  {id:"s4",date:"2026-03-07",time:"09:30",bm:70, formula:70},
-  {id:"s5",date:"2026-03-07",time:"12:40",bm:65, formula:0 },
-  {id:"s6",date:"2026-03-07",time:"16:20",bm:75, formula:35}
+  {id:"s1",date:"2026-03-06",time:"21:45",bm:70,  formula:0,  pump:null, direct:null},
+  {id:"s2",date:"2026-03-07",time:"01:45",bm:75,  formula:35, pump:null, direct:null},
+  {id:"s3",date:"2026-03-07",time:"06:00",bm:90,  formula:35, pump:null, direct:null},
+  {id:"s4",date:"2026-03-07",time:"09:30",bm:70,  formula:70, pump:null, direct:null},
+  {id:"s5",date:"2026-03-07",time:"12:40",bm:65,  formula:0,  pump:null, direct:null},
+  {id:"s6",date:"2026-03-07",time:"16:20",bm:75,  formula:35, pump:null, direct:null},
+  {id:"s7",date:"2026-03-07",time:"18:59",bm:0,   formula:65, pump:null, direct:null},
+  {id:"s8",date:"2026-03-07",time:"19:30",bm:0,   formula:0,  pump:null, direct:"right"},
+  {id:"s9",date:"2026-03-07",time:"20:28",bm:75,  formula:0,  pump:"20:00", direct:null}
 ];
 
 var WHO_W=[
@@ -738,7 +988,7 @@ function tryLogin(){
     document.getElementById("lock-screen").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
     document.getElementById("fab").classList.remove("hidden");
-    initApp();
+    startFirebaseSync();
   } else {
     var inp=document.getElementById("pw-input");
     inp.classList.add("shake");
@@ -749,6 +999,7 @@ function tryLogin(){
 }
 function logout(){
   sessionStorage.removeItem(SESSION_KEY);
+  stopFirebaseSync();
   document.getElementById("lock-screen").classList.remove("hidden");
   document.getElementById("app").classList.add("hidden");
   document.getElementById("fab").classList.add("hidden");
@@ -772,7 +1023,7 @@ function migrateDates(feeds){
     }
     return f;
   });
-  if(changed) saveFeeds(fixed);
+  if(changed) _lsSetFeeds(fixed); // patch LS only; Firestore will be written on next real save
   return fixed;
 }
 function loadFeeds(){
@@ -1303,13 +1554,11 @@ function askDelete(id){pendingDelId=id;document.getElementById("confirm-overlay"
 function closeConfirm(){pendingDelId=null;document.getElementById("confirm-overlay").classList.add("hidden");}
 function confirmDelete(){
   if(pendingDelVisitId){
-    var visits=loadVisits().filter(function(v){return v.id!==pendingDelVisitId;});
-    saveVisits(visits);
+    deleteVisitById(pendingDelVisitId);
     pendingDelVisitId=null;
     closeConfirm();renderAll();showToast("Visit removed.","var(--amber)");
   } else if(pendingDelId){
-    var feeds=loadFeeds().filter(function(f){return f.id!==pendingDelId;});
-    saveFeeds(feeds);
+    deleteFeedById(pendingDelId);
     pendingDelId=null;
     closeConfirm();renderAll();showToast("Feed removed.","var(--amber)");
   }
@@ -1699,7 +1948,20 @@ if(sessionStorage.getItem(SESSION_KEY)){
   document.getElementById("lock-screen").classList.add("hidden");
   document.getElementById("app").classList.remove("hidden");
   document.getElementById("fab").classList.remove("hidden");
-  window.addEventListener("DOMContentLoaded",initApp);
+  // Start sync when Firebase module is ready (or immediately if already ready)
+  if(window._fbReady){
+    window.addEventListener("DOMContentLoaded", startFirebaseSync);
+  } else {
+    document.addEventListener("fbReady", function(){
+      startFirebaseSync();
+    });
+    window.addEventListener("DOMContentLoaded", function(){
+      // Fallback: if fbReady never fires (config not set), use local data
+      setTimeout(function(){
+        if(_cachedFeeds === null){ startFirebaseSync(); }
+      }, 3000);
+    });
+  }
 } else {
   window.addEventListener("DOMContentLoaded",function(){
     document.getElementById("pw-input").focus();
