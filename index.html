@@ -631,14 +631,14 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
     <div class="form-grid">
       <div><label class="form-label">Date</label><input class="form-input" type="date" id="f-date" /></div>
       <div><label class="form-label">Feed Time</label><input class="form-input" type="time" id="f-time" /></div>
-      <div><label class="form-label">🤱 Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
-      <div><label class="form-label">🥛 Formula (ml)</label><input class="form-input" type="number" id="f-fm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div><label class="form-label">&#x1F931; Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div><label class="form-label">&#x1F95B; Formula (ml)</label><input class="form-input" type="number" id="f-fm" placeholder="0" min="0" oninput="updatePreview()" /></div>
       <div style="grid-column:1/-1"><label class="form-label">&#x1F4A7; Pump Time <span style="color:var(--subtle);font-weight:400;font-size:11px">(optional &mdash; when you pumped)</span></label><input class="form-input" type="time" id="f-pump" /></div>
       <div class="breast-section">
         <div class="breast-toggle-row" id="breast-toggle-row" onclick="toggleDirectBreast()">
           <div class="breast-checkbox" id="breast-checkbox"></div>
           <div>
-            <div class="breast-toggle-label">🤱 Direct breast feed (skin-to-skin)</div>
+            <div class="breast-toggle-label">&#x1F931; Direct breast feed (skin-to-skin)</div>
             <div class="breast-toggle-sub">Tick if baby fed directly from breast &mdash; no ml needed</div>
           </div>
         </div>
@@ -1118,8 +1118,8 @@ function renderStats(feeds,visits){
   var cards=[
     {icon:"&#x2696;&#xFE0F;",val:dispW+" kg",lbl:"Weight",sub:dispDate,c:"var(--rose)"},
     {icon:"&#x1F4CF;",val:dispH+" cm",lbl:"Height",sub:dispDate,c:"var(--plum)"},
-    {icon:"🤱",val:t.dailyBM+" ml",lbl:"Breast Milk",sub:"today",c:"var(--rose)"},
-    {icon:"🥛",val:t.dailyFormula+" ml",lbl:"Formula",sub:"today",c:"var(--plum)"},
+    {icon:"\uD83E\uDD31",val:t.dailyBM+" ml",lbl:"Breast Milk",sub:"today",c:"var(--rose)"},
+    {icon:"\uD83E\uDD5B",val:t.dailyFormula+" ml",lbl:"Formula",sub:"today",c:"var(--plum)"},
     {icon:"&#x1F4CA;",val:t.dailyTotal+" ml",lbl:"Total",sub:"today",c:"var(--blue)"},
     {icon:"&#x2705;",val:rl+"&ndash;"+rh,lbl:"Target Range",sub:"ml/day",c:"var(--green)"},
     {icon:"&#x1F4A7;",val:pct+"%",lbl:"Coverage",sub:"of mid-target",c:pc}
@@ -1378,12 +1378,12 @@ function renderLog(feeds){
       }
       var pumpHtml=f.pump?'<span class="log-pump">&#x1F4A7; pumped '+f.pump+'</span>':"";
       var sideLabel={left:"◀ Left",right:"Right ▶",both:"⟺ Both"};
-      var breastHtml=f.direct?'<span class="log-breast">🤱 Direct &middot; '+(sideLabel[f.direct]||f.direct)+'</span>':"";
+      var breastHtml=f.direct?'<span class="log-breast">\uD83E\uDD31 Direct &middot; '+(sideLabel[f.direct]||f.direct)+'</span>':"";
       return gapHtml+
         '<div class="log-row"><span class="log-time">'+f.time+'</span><div class="log-amounts">'+
         breastHtml+
-        (f.bm>0?'<span class="log-bm">🤱 '+f.bm+' ml</span>':"")+
-        (f.formula>0?'<span class="log-fm">🥛 '+f.formula+' ml</span>':"")+
+        (f.bm>0?'<span class="log-bm">\uD83E\uDD31 '+f.bm+' ml</span>':"")+
+        (f.formula>0?'<span class="log-fm">\uD83E\uDD5B '+f.formula+' ml</span>':"")+
         (tot>0?'<span class="log-tot">'+tot+' ml</span>':"")+
         pumpHtml+
         (tot>0?'<div class="log-bar-wrap"><div class="log-mini-bar"><div class="log-mini-fill" style="width:'+bp+'%"></div></div><span class="log-bmpct">'+bp+'%</span></div>':"")+
@@ -1451,9 +1451,9 @@ function updatePreview(){
   var fm=parseFloat(document.getElementById("f-fm").value)||0;
   var tot=bm+fm;
   var parts=[];
-  if(_breastSide){var sideLabel={left:"left breast",right:"right breast",both:"both breasts"}[_breastSide];parts.push('<span style="color:var(--rose)">🤱 Direct ('+sideLabel+')</span>');}
-  if(bm>0) parts.push('<span style="color:var(--rose)">🤱 '+bm+' ml BM</span>');
-  if(fm>0) parts.push('<span style="color:var(--plum)">🥛 '+fm+' ml formula</span>');
+  if(_breastSide){var sideLabel={left:"left breast",right:"right breast",both:"both breasts"}[_breastSide];parts.push('<span style="color:var(--rose)">\uD83E\uDD31 Direct ('+sideLabel+')</span>');}
+  if(bm>0) parts.push('<span style="color:var(--rose)">\uD83E\uDD31 '+bm+' ml BM</span>');
+  if(fm>0) parts.push('<span style="color:var(--plum)">\uD83E\uDD5B '+fm+' ml formula</span>');
   if(tot>0) parts.push('<strong>'+tot+' ml total</strong>');
   document.getElementById("feed-preview").innerHTML=parts.length?parts.join(' &middot; '):"Enter amounts above";
 }
@@ -1479,12 +1479,12 @@ function saveFeed(){
   renderAll();
   var tot=bm+fm;
   var chips=[];
-  if(direct){var sl={left:"◀ Left",right:"Right ▶",both:"⟺ Both"}[direct];chips.push({label:'🤱 Direct ('+sl+')',cls:'rose'});}
-  if(bm>0) chips.push({label:'🤱 '+bm+' ml BM',cls:'rose'});
-  if(fm>0) chips.push({label:'🥛 '+fm+' ml formula',cls:'plum'});
+  if(direct){var sl={left:"◀ Left",right:"Right ▶",both:"⟺ Both"}[direct];chips.push({label:'\uD83E\uDD31 Direct ('+sl+')',cls:'rose'});}
+  if(bm>0) chips.push({label:'\uD83E\uDD31 '+bm+' ml BM',cls:'rose'});
+  if(fm>0) chips.push({label:'\uD83E\uDD5B '+fm+' ml formula',cls:'plum'});
   if(tot>0) chips.push({label:'Total: '+tot+' ml',cls:'green'});
-  if(pump) chips.push({label:'💧 Pumped '+pump,cls:''});
-  showSuccess('🤱',isEdit?'Feed Updated!':'Feed Logged!',isEdit?'Feed entry has been updated.':'Your little guy\'s feed has been recorded.',chips);
+  if(pump) chips.push({label:'\uD83D\uDCA7 Pumped '+pump,cls:''});
+  showSuccess('\uD83E\uDD31',isEdit?'Feed Updated!':'Feed Logged!',isEdit?'Feed entry has been updated.':'Your little guy\'s feed has been recorded.',chips);
 }
 
 // Visit Modal
@@ -1539,7 +1539,7 @@ function saveVisit(){
   if(w) chips2.push({label:'⚖️ '+w+' kg',cls:'rose'});
   if(h) chips2.push({label:'📏 '+h+' cm',cls:'plum'});
   if(note) chips2.push({label:note,cls:'green'});
-  showSuccess('🩺',isEdit?'Visit Updated!':'Visit Saved!',isEdit?'Doctor visit entry has been updated.':'Doctor visit recorded. Charts updated with new measurements.',chips2);
+  showSuccess('\uD83E\uDE7A',isEdit?'Visit Updated!':'Visit Saved!',isEdit?'Doctor visit entry has been updated.':'Doctor visit recorded. Charts updated with new measurements.',chips2);
 }
 
 var pendingDelVisitId=null;
@@ -1955,7 +1955,3 @@ window.addEventListener("DOMContentLoaded", function(){
 </script>
 </body>
 </html>
-Done
-The full code is in the output above from the cat command — that's the exact file content. Here's how to update it in GitHub:
-
-Go to your repo: htt
