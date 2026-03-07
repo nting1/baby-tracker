@@ -7,9 +7,8 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script type="module">
-// ── FIREBASE CONFIG ── Replace these values from your Firebase console ──────
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, doc, getDocs, setDoc, deleteDoc, onSnapshot, writeBatch }
+import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const FIREBASE_CONFIG = {
@@ -24,19 +23,17 @@ const FIREBASE_CONFIG = {
 const _fbApp = initializeApp(FIREBASE_CONFIG);
 const _db    = getFirestore(_fbApp);
 
-// Expose DB helpers to global scope so existing code can call them
-window._db         = _db;
-window._collection = collection;
-window._doc        = doc;
-window._getDocs    = getDocs;
-window._setDoc     = setDoc;
-window._deleteDoc  = deleteDoc;
-window._onSnapshot = onSnapshot;
-window._writeBatch = writeBatch;
-window._fbReady    = true;
+window._db          = _db;
+window._collection  = collection;
+window._doc         = doc;
+window._setDoc      = setDoc;
+window._deleteDoc   = deleteDoc;
+window._onSnapshot  = onSnapshot;
+window._fbReady     = true;
 
-// Notify app that Firebase is ready
-document.dispatchEvent(new Event("fbReady"));
+// Use a resolvable promise so any code calling window._fbPromise.then() always works
+// regardless of whether Firebase loaded before or after DOMContentLoaded
+if(window._fbResolve) window._fbResolve();
 </script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -789,14 +786,29 @@ function _fsDeleteVisit(id){
 // ── Real-time listeners ────────────────────────────────────────────────────
 // Called once after login — subscribes to live Firestore updates
 function startFirebaseSync(){
+  // If Firebase module hasn't loaded yet, wait up to 5s then start
   if(!_isFirebaseReady()){
-    // Firebase not configured yet — use localStorage only
-    setSyncBadge("offline");
-    if(!_cachedFeeds)  _cachedFeeds  = migrateDates(_lsGetFeeds() || JSON.parse(JSON.stringify(SEED_FEEDS)));
-    if(!_cachedVisits) _cachedVisits = _lsGetVisits() || JSON.parse(JSON.stringify(SEED_VISITS));
-    renderAll();
+    setSyncBadge("init");
+    var attempts = 0;
+    var wait = setInterval(function(){
+      attempts++;
+      if(_isFirebaseReady()){
+        clearInterval(wait);
+        _attachListeners();
+      } else if(attempts > 50){ // 5 seconds
+        clearInterval(wait);
+        setSyncBadge("offline");
+        if(!_cachedFeeds)  _cachedFeeds  = migrateDates(_lsGetFeeds() || JSON.parse(JSON.stringify(SEED_FEEDS)));
+        if(!_cachedVisits) _cachedVisits = _lsGetVisits() || JSON.parse(JSON.stringify(SEED_VISITS));
+        renderAll();
+      }
+    }, 100);
     return;
   }
+  _attachListeners();
+}
+
+function _attachListeners(){
   setSyncBadge("init");
 
   // Feeds listener
@@ -846,20 +858,19 @@ function stopFirebaseSync(){
 // Seed Firestore on very first use (empty database)
 function _seedFirestore(){
   if(!_isFirebaseReady()) return;
-  var batch = window._writeBatch(window._db);
-  var seeds  = JSON.parse(JSON.stringify(SEED_FEEDS));
+  var seeds = JSON.parse(JSON.stringify(SEED_FEEDS));
   seeds.forEach(function(f){
-    batch.set(window._doc(window._db,"feeds",f.id), f);
+    window._setDoc(window._doc(window._db,"feeds",f.id), f)
+      .catch(function(e){ console.warn("Seed feed error:", e); });
   });
   var vseeds = JSON.parse(JSON.stringify(SEED_VISITS));
   vseeds.forEach(function(v){
-    batch.set(window._doc(window._db,"visits",v.id), v);
+    window._setDoc(window._doc(window._db,"visits",v.id), v)
+      .catch(function(e){ console.warn("Seed visit error:", e); });
   });
-  batch.commit().catch(function(e){ console.warn("Seed error:", e); });
 }
 
-// Patch: after first snapshot loads, upsert any seed entries missing from Firestore
-// (handles the case where new seed entries are added after initial setup)
+// Patch: upsert any seed entries missing from Firestore
 function _patchMissingSeeds(existingDocs){
   if(!_isFirebaseReady()) return;
   var existingIds = {};
@@ -868,14 +879,11 @@ function _patchMissingSeeds(existingDocs){
     return !existingIds[f.id];
   });
   if(missing.length === 0) return;
-  console.log("Patching", missing.length, "missing seed feeds to Firestore...");
-  var batch = window._writeBatch(window._db);
+  console.log("Patching", missing.length, "missing seed entries...");
   missing.forEach(function(f){
-    batch.set(window._doc(window._db,"feeds",f.id), f);
+    window._setDoc(window._doc(window._db,"feeds",f.id), f)
+      .catch(function(e){ console.warn("Patch error:", e); });
   });
-  batch.commit()
-    .then(function(){ console.log("Patch complete."); })
-    .catch(function(e){ console.warn("Patch error:", e); });
 }
 
 // ── Public data API (same interface as before) ─────────────────────────────
@@ -886,19 +894,18 @@ function loadVisits(){
   return _cachedVisits || _lsGetVisits() || JSON.parse(JSON.stringify(SEED_VISITS));
 }
 
-// saveFeeds: write full array to cache + LS, then sync each changed doc to Firestore
+// saveFeeds: cache locally + write only the changed/new doc to Firestore
+// Accepts either (feeds_array) for full replace, or called after push so we pass the new entry
 function saveFeeds(feeds){
   feeds.sort(function(a,b){return (a.date+a.time).localeCompare(b.date+b.time);});
   _cachedFeeds = feeds;
   _lsSetFeeds(feeds);
   if(!_isFirebaseReady()){ setSyncBadge("offline"); return; }
   setSyncBadge("saving");
-  // Diff: write all (small collection, cheap)
-  var batch = window._writeBatch(window._db);
-  feeds.forEach(function(f){
-    batch.set(window._doc(window._db,"feeds",f.id), f);
+  var promises = feeds.map(function(f){
+    return window._setDoc(window._doc(window._db,"feeds",f.id), f);
   });
-  batch.commit()
+  Promise.all(promises)
     .then(function(){ setSyncBadge("synced"); })
     .catch(function(e){ console.warn("saveFeeds error:", e); setSyncBadge("offline"); });
 }
@@ -909,11 +916,10 @@ function saveVisits(visits){
   _lsSetVisits(visits);
   if(!_isFirebaseReady()){ setSyncBadge("offline"); return; }
   setSyncBadge("saving");
-  var batch = window._writeBatch(window._db);
-  visits.forEach(function(v){
-    batch.set(window._doc(window._db,"visits",v.id), v);
+  var promises = visits.map(function(v){
+    return window._setDoc(window._doc(window._db,"visits",v.id), v);
   });
-  batch.commit()
+  Promise.all(promises)
     .then(function(){ setSyncBadge("synced"); })
     .catch(function(e){ console.warn("saveVisits error:", e); setSyncBadge("offline"); });
 }
@@ -1026,16 +1032,7 @@ function migrateDates(feeds){
   if(changed) _lsSetFeeds(fixed); // patch LS only; Firestore will be written on next real save
   return fixed;
 }
-function loadFeeds(){
-  try{var s=localStorage.getItem(STORAGE_KEY);var f=s?JSON.parse(s):JSON.parse(JSON.stringify(SEED_FEEDS));return migrateDates(f);}
-  catch(e){return JSON.parse(JSON.stringify(SEED_FEEDS));}
-}
-function saveFeeds(f){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(f));}catch(e){}}
-function loadVisits(){
-  try{var s=localStorage.getItem(VISITS_KEY);return s?JSON.parse(s):JSON.parse(JSON.stringify(SEED_VISITS));}
-  catch(e){return JSON.parse(JSON.stringify(SEED_VISITS));}
-}
-function saveVisits(v){try{localStorage.setItem(VISITS_KEY,JSON.stringify(v));}catch(e){}}
+// (loadFeeds/saveFeeds/loadVisits/saveVisits defined above with Firebase sync)
 function uid(){return Math.random().toString(36).slice(2,9);}
 
 // Projection
@@ -1944,29 +1941,17 @@ function showToast(msg,color){
 }
 
 // Boot
-if(sessionStorage.getItem(SESSION_KEY)){
-  document.getElementById("lock-screen").classList.add("hidden");
-  document.getElementById("app").classList.remove("hidden");
-  document.getElementById("fab").classList.remove("hidden");
-  // Start sync when Firebase module is ready (or immediately if already ready)
-  if(window._fbReady){
-    window.addEventListener("DOMContentLoaded", startFirebaseSync);
+window.addEventListener("DOMContentLoaded", function(){
+  if(sessionStorage.getItem(SESSION_KEY)){
+    document.getElementById("lock-screen").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+    document.getElementById("fab").classList.remove("hidden");
+    // startFirebaseSync handles its own retry loop if Firebase isn't ready yet
+    startFirebaseSync();
   } else {
-    document.addEventListener("fbReady", function(){
-      startFirebaseSync();
-    });
-    window.addEventListener("DOMContentLoaded", function(){
-      // Fallback: if fbReady never fires (config not set), use local data
-      setTimeout(function(){
-        if(_cachedFeeds === null){ startFirebaseSync(); }
-      }, 3000);
-    });
-  }
-} else {
-  window.addEventListener("DOMContentLoaded",function(){
     document.getElementById("pw-input").focus();
-  });
-}
+  }
+});
 </script>
 </body>
 </html>
