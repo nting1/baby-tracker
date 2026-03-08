@@ -631,8 +631,8 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
     <div class="form-grid">
       <div><label class="form-label">Date</label><input class="form-input" type="date" id="f-date" /></div>
       <div><label class="form-label">Feed Time</label><input class="form-input" type="time" id="f-time" /></div>
-      <div><label class="form-label">&#x1F37C; Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
-      <div><label class="form-label">&#x1F964; Formula (ml)</label><input class="form-input" type="number" id="f-fm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div><label class="form-label">🤱 Breast Milk (ml)</label><input class="form-input" type="number" id="f-bm" placeholder="0" min="0" oninput="updatePreview()" /></div>
+      <div><label class="form-label">🍼 Formula (ml)</label><input class="form-input" type="number" id="f-fm" placeholder="0" min="0" oninput="updatePreview()" /></div>
       <div style="grid-column:1/-1"><label class="form-label">&#x1F4A7; Pump Time <span style="color:var(--subtle);font-weight:400;font-size:11px">(optional &mdash; when you pumped)</span></label><input class="form-input" type="time" id="f-pump" /></div>
       <div class="breast-section">
         <div class="breast-toggle-row" id="breast-toggle-row" onclick="toggleDirectBreast()">
@@ -1452,10 +1452,10 @@ function updatePreview(){
   var fm=parseFloat(document.getElementById("f-fm").value)||0;
   var tot=bm+fm;
   var parts=[];
-  if(_breastSide){var sideLabel={left:"left breast",right:"right breast",both:"both breasts"}[_breastSide];parts.push('<span style="color:var(--rose)"><b style="color:var(--rose);font-size:11px;background:rgba(26,143,227,0.1);border-radius:6px;padding:1px 5px;margin-right:2px">BM</b> Direct ('+sideLabel+')</span>');}
-  if(bm>0) parts.push('<span style="color:var(--rose)"><b style="color:var(--rose);font-size:11px;background:rgba(26,143,227,0.1);border-radius:6px;padding:1px 5px;margin-right:2px">BM</b> '+bm+' ml BM</span>');
-  if(fm>0) parts.push('<span style="color:var(--plum)"><b style="color:var(--plum);font-size:11px;background:rgba(23,162,196,0.1);border-radius:6px;padding:1px 5px;margin-right:2px">FM</b> '+fm+' ml formula</span>');
-  if(tot>0) parts.push('<strong>'+tot+' ml total</strong>');
+  if(_breastSide){var sideLabel={left:"left breast",right:"right breast",both:"both breasts"}[_breastSide];parts.push('<span style="color:var(--rose)">🤱 Direct ('+sideLabel+')</span>');}
+  if(bm>0) parts.push('<span style="color:var(--rose)">🤱 '+bm+' ml BM</span>');
+  if(fm>0) parts.push('<span style="color:var(--plum)">🍼 '+fm+' ml formula</span>');
+  if(tot>0) parts.push('<strong>= '+tot+' ml total</strong>');
   document.getElementById("feed-preview").innerHTML=parts.length?parts.join(' &middot; '):"Enter amounts above";
 }
 
