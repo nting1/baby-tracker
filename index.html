@@ -1480,12 +1480,12 @@ function saveFeed(){
   renderAll();
   var tot=bm+fm;
   var chips=[];
-  if(direct){var sl={left:"◀ Left",right:"Right ▶",both:"⟺ Both"}[direct];chips.push({label:'<b style="color:var(--rose);font-size:11px;background:rgba(26,143,227,0.1);border-radius:6px;padding:1px 5px;margin-right:2px">BM</b> Direct ('+sl+')',cls:'rose'});}
-  if(bm>0) chips.push({label:'<b style="color:var(--rose);font-size:11px;background:rgba(26,143,227,0.1);border-radius:6px;padding:1px 5px;margin-right:2px">BM</b> '+bm+' ml BM',cls:'rose'});
-  if(fm>0) chips.push({label:'<b style="color:var(--plum);font-size:11px;background:rgba(23,162,196,0.1);border-radius:6px;padding:1px 5px;margin-right:2px">FM</b> '+fm+' ml formula',cls:'plum'});
-  if(tot>0) chips.push({label:'Total: '+tot+' ml',cls:'green'});
-  if(pump) chips.push({label:'\uD83D\uDCA7 Pumped '+pump,cls:''});
-  showSuccess('\uD83C\uDF7C',isEdit?'Feed Updated!':'Feed Logged!',isEdit?'Feed entry has been updated.':'Your little guy\'s feed has been recorded.',chips);
+  if(direct){var sl={left:"◄ Left",right:"Right ►",both:"⟺ Both"}[direct];chips.push({label:'🤱 Direct ('+sl+')',cls:'rose'});}
+  if(bm>0) chips.push({label:'🤱 '+bm+' ml BM',cls:'rose'});
+  if(fm>0) chips.push({label:'🍼 '+fm+' ml formula',cls:'plum'});
+  if(tot>0) chips.push({label:'= '+tot+' ml total',cls:'green'});
+  if(pump) chips.push({label:'💧 Pumped '+pump,cls:''});
+  showSuccess('🤱',isEdit?'Feed Updated!':'Feed Logged!',isEdit?'Feed entry has been updated.':'Your little guy\'s feed has been recorded.',chips);
 }
 
 // Visit Modal
@@ -1886,7 +1886,7 @@ function showSuccess(icon, title, body, chips){
     chips.forEach(function(c){
       var span=document.createElement("span");
       span.className="success-chip "+(c.cls||"");
-      span.textContent=c.label;
+      span.innerHTML=c.label;
       metaDiv.appendChild(span);
     });
     document.getElementById("success-body").after(metaDiv);
@@ -1942,13 +1942,24 @@ function showToast(msg,color){
 }
 
 // Boot
+// Midnight reset — re-render stats/overview when the day rolls over
+function scheduleMidnightReset(){
+  var now=new Date();
+  var midnight=new Date(now.getFullYear(),now.getMonth(),now.getDate()+1,0,0,5);
+  var msUntil=midnight-now;
+  setTimeout(function(){
+    renderAll();
+    scheduleMidnightReset();
+  }, msUntil);
+}
+
 window.addEventListener("DOMContentLoaded", function(){
   if(sessionStorage.getItem(SESSION_KEY)){
     document.getElementById("lock-screen").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
     document.getElementById("fab").classList.remove("hidden");
-    // startFirebaseSync handles its own retry loop if Firebase isn't ready yet
     startFirebaseSync();
+    scheduleMidnightReset();
   } else {
     document.getElementById("pw-input").focus();
   }
