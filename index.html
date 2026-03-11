@@ -528,21 +528,31 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
 
     <!-- Growth -->
     <div class="tab-panel" id="tab-growth">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+        <h2 style="font-family:var(--fd);font-size:16px;color:var(--text)">Growth Tracker</h2>
+        <button class="add-feed-inline" onclick="openVisitModal()">+ Add Measurement</button>
+      </div>
       <div class="card">
         <div class="card-title">&#x2696;&#xFE0F; Weight-for-Age &mdash; WHO Boys Percentiles</div>
         <div class="chart-wrap"><canvas id="chart-weight"></canvas></div>
-        <div class="info-note">At 7 weeks (born 9 Jan 2026), <strong style="color:var(--rose)">5.02 kg</strong> sits around the <strong>25th&ndash;40th percentile</strong> for WHO boys &mdash; perfectly healthy.</div>
+        <div class="info-note" id="growth-weight-note">No measurements logged yet. Tap &ldquo;+ Add Measurement&rdquo; to get started.</div>
       </div>
       <div class="card">
         <div class="card-title">&#x1F4CF; Length-for-Age &mdash; WHO Boys Percentiles</div>
         <div class="chart-wrap"><canvas id="chart-height"></canvas></div>
-        <div class="info-note">At <strong style="color:var(--plum)">55 cm</strong>, around the <strong>25th&ndash;35th percentile</strong>. Weight and height are consistent &mdash; proportionate, healthy growth. &#x1F4AA;</div>
+        <div class="info-note" id="growth-height-note">Log measurements to see height-for-age percentiles here.</div>
       </div>
       <div class="summary-grid">
-        <div class="summary-tile"><div class="lbl">Weight (3 Mar)</div><div class="val" style="color:var(--rose)">5.02 kg</div><div class="sub">~25&ndash;40th %ile WHO boys</div></div>
-        <div class="summary-tile"><div class="lbl">Height (3 Mar)</div><div class="val" style="color:var(--plum)">55 cm</div><div class="sub">~25&ndash;35th %ile WHO boys</div></div>
-        <div class="summary-tile"><div class="lbl">Growth Pattern</div><div class="val" style="color:var(--blue)">Proportionate</div><div class="sub">Consistent percentiles</div></div>
-        <div class="summary-tile"><div class="lbl">Daily Need Range</div><div class="val" id="need-range-tile" style="color:var(--green)">711&ndash;914 ml</div><div class="sub">140&ndash;180 ml/kg/day</div></div>
+        <div class="summary-tile"><div class="lbl" id="growth-weight-lbl">Weight</div><div class="val" id="growth-weight-val" style="color:var(--rose)">—</div><div class="sub" id="growth-weight-pct">No data yet</div></div>
+        <div class="summary-tile"><div class="lbl" id="growth-height-lbl">Height</div><div class="val" id="growth-height-val" style="color:var(--plum)">—</div><div class="sub" id="growth-height-pct">No data yet</div></div>
+        <div class="summary-tile"><div class="lbl">Growth Pattern</div><div class="val" id="growth-pattern-val" style="color:var(--blue)">—</div><div class="sub" id="growth-pattern-sub">Add measurements to track</div></div>
+        <div class="summary-tile"><div class="lbl">Daily Need Range</div><div class="val" id="need-range-tile" style="color:var(--green)">—</div><div class="sub">140&ndash;180 ml/kg/day</div></div>
+      </div>
+      <div id="growth-history-card" style="display:none">
+        <div class="card" style="margin-top:16px">
+          <div class="card-title">&#x1F4C5; Measurement History</div>
+          <div id="growth-history-list"></div>
+        </div>
       </div>
     </div>
 
@@ -1193,12 +1203,98 @@ function renderOverview(feeds){
   }).join("");
 }
 
+function _whoWeightPct(wk,kg){
+  var ref=WHO_W.reduce(function(a,b){return Math.abs(b.w-wk)<Math.abs(a.w-wk)?b:a;});
+  if(!ref)return null;
+  if(kg<=ref.p3)return "below 3rd";
+  if(kg<=ref.p15)return "3rd\u201315th";
+  if(kg<=ref.p50)return "15th\u201350th";
+  if(kg<=ref.p85)return "50th\u201385th";
+  if(kg<=ref.p97)return "85th\u201397th";
+  return "above 97th";
+}
+function _whoHeightPct(wk,cm){
+  var ref=WHO_H.reduce(function(a,b){return Math.abs(b.w-wk)<Math.abs(a.w-wk)?b:a;});
+  if(!ref)return null;
+  if(cm<=ref.p3)return "below 3rd";
+  if(cm<=ref.p50)return "3rd\u201350th";
+  if(cm<=ref.p97)return "50th\u201397th";
+  return "above 97th";
+}
 function renderGrowth(visits){
   visits=visits||loadVisits();
   visits.sort(function(a,b){return a.date.localeCompare(b.date);});
+  var latest=visits.length>0?visits[visits.length-1]:null;
+  var birth=new Date("2026-01-09");
+
+  // Update summary tiles
+  if(latest){
+    var d=new Date(latest.date+"T12:00");
+    var wk=Math.round((d-birth)/(1000*60*60*24*7));
+    var dateStr=d.toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"});
+    if(latest.weight){
+      var wPct=_whoWeightPct(wk,latest.weight);
+      document.getElementById("growth-weight-lbl").textContent="Weight ("+dateStr+")";
+      document.getElementById("growth-weight-val").textContent=latest.weight.toFixed(2)+" kg";
+      document.getElementById("growth-weight-pct").textContent=wPct?("~"+wPct+" %ile WHO boys"):"";
+      document.getElementById("growth-weight-note").innerHTML=
+        "At <strong>wk "+wk+"</strong> (born 9 Jan 2026), <strong style=\"color:var(--rose)\">"+latest.weight.toFixed(2)+" kg</strong> is in the <strong>"+wPct+" percentile</strong> for WHO boys.";
+      var low=(latest.weight*140).toFixed(0),high=(latest.weight*180).toFixed(0);
+      document.getElementById("need-range-tile").textContent=low+"\u2013"+high+" ml";
+    }
+    if(latest.height){
+      var hPct=_whoHeightPct(wk,latest.height);
+      document.getElementById("growth-height-lbl").textContent="Height ("+dateStr+")";
+      document.getElementById("growth-height-val").textContent=latest.height.toFixed(1)+" cm";
+      document.getElementById("growth-height-pct").textContent=hPct?("~"+hPct+" %ile WHO boys"):"";
+      document.getElementById("growth-height-note").innerHTML=
+        "At <strong style=\"color:var(--plum)\">"+latest.height.toFixed(1)+" cm</strong>, in the <strong>"+hPct+" percentile</strong>. Weight and height are consistent &mdash; proportionate, healthy growth. \uD83D\uDCAA";
+    }
+    if(latest.weight&&latest.height){
+      document.getElementById("growth-pattern-val").textContent="Proportionate";
+      document.getElementById("growth-pattern-sub").textContent="Consistent percentiles";
+    }
+  } else {
+    document.getElementById("growth-weight-lbl").textContent="Weight";
+    document.getElementById("growth-weight-val").textContent="\u2014";
+    document.getElementById("growth-weight-pct").textContent="No data yet";
+    document.getElementById("growth-height-lbl").textContent="Height";
+    document.getElementById("growth-height-val").textContent="\u2014";
+    document.getElementById("growth-height-pct").textContent="No data yet";
+    document.getElementById("growth-pattern-val").textContent="\u2014";
+    document.getElementById("growth-pattern-sub").textContent="Add measurements to track";
+    document.getElementById("need-range-tile").textContent="\u2014";
+    document.getElementById("growth-weight-note").textContent="No measurements logged yet. Tap \u201C+ Add Measurement\u201D to get started.";
+    document.getElementById("growth-height-note").textContent="Log measurements to see height-for-age percentiles here.";
+  }
+
+  // Render history list
+  var histCard=document.getElementById("growth-history-card");
+  var histList=document.getElementById("growth-history-list");
+  if(visits.length>0){
+    histCard.style.display="block";
+    var reversed=visits.slice().reverse();
+    histList.innerHTML=reversed.map(function(v){
+      var dv=new Date(v.date+"T12:00");
+      var wkv=Math.round((dv-birth)/(1000*60*60*24*7));
+      var ds=dv.toLocaleDateString("en",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+      return '<div class="log-row" style="flex-wrap:wrap;gap:8px">'+
+        '<span class="log-time" style="min-width:80px">Wk '+wkv+'</span>'+
+        '<span style="flex:1;font-size:13px;color:var(--text)">'+ds+'</span>'+
+        (v.weight?'<span class="log-bm">\u2696\uFE0F '+v.weight.toFixed(2)+' kg</span>':'')+
+        (v.height?'<span class="log-fm">\uD83D\uDCCF '+v.height.toFixed(1)+' cm</span>':'')+
+        (v.note?'<span style="color:var(--muted);font-size:12px;width:100%">'+v.note+'</span>':'')+
+        '<div class="row-actions">'+
+          '<button class="edit-btn" onclick="openVisitModal(\''+v.id+'\')">\u270F\uFE0F Edit</button>'+
+        '</div>'+
+      '</div>';
+    }).join("");
+  } else {
+    histCard.style.display="none";
+  }
+
   // Map visits to WHO week index for weight chart (WHO_W weeks: 0,2,4,6,7,8,10,12,16,20,26)
   var wWpts=visits.map(function(v){
-    var birth=new Date("2026-01-09");
     var d=new Date(v.date+"T12:00");
     var wk=Math.round((d-birth)/(1000*60*60*24*7));
     return {wk:wk,weight:v.weight,height:v.height};
@@ -1501,8 +1597,8 @@ function openVisitModal(visitId){
   document.getElementById("v-weight").value=(visit&&visit.weight)?visit.weight:"";
   document.getElementById("v-height").value=(visit&&visit.height)?visit.height:"";
   document.getElementById("v-note").value=(visit&&visit.note)?visit.note:"";
-  document.getElementById("visit-modal-title").innerHTML=editingVisitId?"&#x270F;&#xFE0F; Edit Visit":"&#x1FA78; Log Doctor Visit";
-  document.getElementById("visit-save-btn").textContent=editingVisitId?"Update Visit ✓":"Save Visit ✓";
+  document.getElementById("visit-modal-title").innerHTML=editingVisitId?"&#x270F;&#xFE0F; Edit Measurement":"&#x1F4CF; Add Measurement";
+  document.getElementById("visit-save-btn").textContent=editingVisitId?"Update ✓":"Save ✓";
   updateVisitPreview();
   document.getElementById("visit-modal-overlay").classList.remove("hidden");
   setTimeout(function(){document.getElementById("v-weight").focus();},100);
