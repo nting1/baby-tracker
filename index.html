@@ -834,8 +834,6 @@ function _attachListeners(){
       _seedFirestore();
       return;
     }
-    // Upsert any seed entries missing from Firestore (e.g. newly added seeds)
-    _patchMissingSeeds(docs);
     docs.sort(function(a,b){return (a.date+a.time).localeCompare(b.date+b.time);});
     _cachedFeeds = migrateDates(docs);
     _lsSetFeeds(_cachedFeeds); // keep local copy for offline
