@@ -619,6 +619,14 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
         <h2 style="font-family:var(--fd);font-size:16px;color:var(--text)" id="log-count-title">All Feeds</h2>
         <button class="add-feed-inline" onclick="openModal()">+ Add Feed</button>
       </div>
+      <div class="card">
+        <div class="card-title">&#x1F931; Daily BM %</div>
+        <div class="chart-wrap"><canvas id="chart-log-bmpct"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">&#x1F931; Daily Breast Milk (ml)</div>
+        <div class="chart-wrap"><canvas id="chart-log-bmml"></canvas></div>
+      </div>
       <div id="log-container"></div>
     </div>
     <div class="tab-panel" id="tab-milestones">
@@ -1444,7 +1452,42 @@ function renderBMOnly(feeds){
   }).join("");
 }
 
+function renderLogCharts(feeds){
+  // Build per-day aggregates across all days in the log
+  var grouped={};
+  feeds.forEach(function(f){
+    if(!grouped[f.date]) grouped[f.date]={bm:0,formula:0};
+    grouped[f.date].bm+=f.bm;
+    grouped[f.date].formula+=f.formula;
+  });
+  var dates=Object.keys(grouped).sort();
+  var labels=dates.map(function(d){
+    var dt=new Date(d+"T12:00");
+    return dt.toLocaleDateString("en",{day:"numeric",month:"short"});
+  });
+  var pcts=dates.map(function(d){
+    var tot=grouped[d].bm+grouped[d].formula;
+    return tot>0?Math.round(grouped[d].bm/tot*100):0;
+  });
+  var bmMls=dates.map(function(d){return grouped[d].bm;});
+
+  mkChart("chart-log-bmpct",{type:"bar",
+    data:{labels:labels,datasets:[{label:"BM %",data:pcts,backgroundColor:"rgba(232,96,122,0.75)",borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:CD.plugins,
+      scales:{x:{ticks:CD.scales.x.ticks,grid:CD.scales.x.grid},
+              y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,min:0,max:100,
+                 title:{display:true,text:"%",color:"#b09090",font:{size:11}}}}}});
+
+  mkChart("chart-log-bmml",{type:"bar",
+    data:{labels:labels,datasets:[{label:"BM (ml)",data:bmMls,backgroundColor:"rgba(232,96,122,0.75)",borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:CD.plugins,
+      scales:{x:{ticks:CD.scales.x.ticks,grid:CD.scales.x.grid},
+              y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,min:0,
+                 title:{display:true,text:"ml",color:"#b09090",font:{size:11}}}}}});
+}
+
 function renderLog(feeds){
+  renderLogCharts(feeds);
   document.getElementById("log-count-title").textContent="All Feeds ("+feeds.length+")";
   var c=document.getElementById("log-container");
   if(feeds.length===0){c.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:36px;margin-bottom:10px">&#x1F37C;</div><p>No feeds logged yet.</p></div>';return;}
