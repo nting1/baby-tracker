@@ -1669,8 +1669,8 @@ function askDeleteVisit(id){pendingDelVisitId=id;pendingDelId=null;document.getE
 
 // Delete (feeds)
 var pendingDelId=null;
-function askDelete(id){pendingDelId=id;document.getElementById("confirm-overlay").classList.remove("hidden");}
-function closeConfirm(){pendingDelId=null;document.getElementById("confirm-overlay").classList.add("hidden");}
+function askDelete(id){pendingDelId=id;pendingDelVisitId=null;document.getElementById("confirm-overlay").classList.remove("hidden");}
+function closeConfirm(){pendingDelId=null;pendingDelVisitId=null;document.getElementById("confirm-overlay").classList.add("hidden");}
 function confirmDelete(){
   if(pendingDelVisitId){
     deleteVisitById(pendingDelVisitId);
