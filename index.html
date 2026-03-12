@@ -1462,7 +1462,7 @@ function renderLogCharts(feeds){
     var bm=grouped[d].bm, fm=grouped[d].formula, tot=bm+fm;
     var pct=tot>0?Math.round(bm/tot*100):0;
     var lbl=new Date(d+"T12:00").toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"});
-    var pc=pct>=70?"var(--green)":pct>=40?"var(--amber)":"var(--red)";
+    var pc=pct>=60?"var(--green)":pct>=40?"var(--amber)":"var(--red)";
     return '<tr><td>'+lbl+'</td><td style="color:var(--rose);font-weight:600">'+bm+'</td><td style="color:var(--plum)">'+fm+'</td><td>'+tot+'</td>'+
       '<td><span style="color:'+pc+';font-weight:600">'+pct+'%</span></td></tr>';
   }).join("");
