@@ -1448,18 +1448,14 @@ function renderBMOnly(feeds){
   }).join("");
 }
 
-function renderLogCharts(feeds){
-  var grouped={};
-  feeds.forEach(function(f){
-    if(!grouped[f.date]) grouped[f.date]={bm:0,formula:0};
-    grouped[f.date].bm+=f.bm;
-    grouped[f.date].formula+=f.formula;
-  });
-  var dates=Object.keys(grouped).sort(function(a,b){return b.localeCompare(a);});
+function renderBMSummaryTable(grouped,dates){
   var tbody=document.getElementById("log-bm-table-body");
   if(!tbody) return;
   tbody.innerHTML=dates.map(function(d){
-    var bm=grouped[d].bm, fm=grouped[d].formula, tot=bm+fm;
+    var df=grouped[d];
+    var bm=df.reduce(function(s,f){return s+f.bm;},0);
+    var fm=df.reduce(function(s,f){return s+f.formula;},0);
+    var tot=bm+fm;
     var pct=tot>0?Math.round(bm/tot*100):0;
     var lbl=new Date(d+"T12:00").toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"});
     var pc=pct>=60?"var(--green)":pct>=40?"var(--amber)":"var(--red)";
@@ -1469,13 +1465,17 @@ function renderLogCharts(feeds){
 }
 
 function renderLog(feeds){
-  renderLogCharts(feeds);
   document.getElementById("log-count-title").textContent="All Feeds ("+feeds.length+")";
   var c=document.getElementById("log-container");
-  if(feeds.length===0){c.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:36px;margin-bottom:10px">&#x1F37C;</div><p>No feeds logged yet.</p></div>';return;}
+  if(feeds.length===0){
+    document.getElementById("log-bm-table-body").innerHTML="";
+    c.innerHTML='<div style="text-align:center;padding:40px 20px;color:var(--muted)"><div style="font-size:36px;margin-bottom:10px">&#x1F37C;</div><p>No feeds logged yet.</p></div>';
+    return;
+  }
   var grouped={};
   feeds.forEach(function(f){(grouped[f.date]=grouped[f.date]||[]).push(f);});
   var dates=Object.keys(grouped).sort(function(a,b){return b.localeCompare(a);});
+  renderBMSummaryTable(grouped,dates);
   c.innerHTML=dates.map(function(date){
     var df=grouped[date].slice().sort(function(a,b){return a.time.localeCompare(b.time);});
     var dtot=df.reduce(function(s,f){return s+f.bm+f.formula;},0);
