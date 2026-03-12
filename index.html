@@ -620,12 +620,8 @@ tbody tr.hl{background:rgba(232,96,122,0.06)!important}
         <button class="add-feed-inline" onclick="openModal()">+ Add Feed</button>
       </div>
       <div class="card">
-        <div class="card-title">&#x1F931; Daily BM %</div>
-        <div class="chart-wrap"><canvas id="chart-log-bmpct"></canvas></div>
-      </div>
-      <div class="card">
-        <div class="card-title">&#x1F931; Daily Breast Milk (ml)</div>
-        <div class="chart-wrap"><canvas id="chart-log-bmml"></canvas></div>
+        <div class="card-title">&#x1F931; Daily Breast Milk Summary</div>
+        <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>BM (ml)</th><th>Formula (ml)</th><th>Total (ml)</th><th>BM %</th></tr></thead><tbody id="log-bm-table-body"></tbody></table></div>
       </div>
       <div id="log-container"></div>
     </div>
@@ -1453,37 +1449,23 @@ function renderBMOnly(feeds){
 }
 
 function renderLogCharts(feeds){
-  // Build per-day aggregates across all days in the log
   var grouped={};
   feeds.forEach(function(f){
     if(!grouped[f.date]) grouped[f.date]={bm:0,formula:0};
     grouped[f.date].bm+=f.bm;
     grouped[f.date].formula+=f.formula;
   });
-  var dates=Object.keys(grouped).sort();
-  var labels=dates.map(function(d){
-    var dt=new Date(d+"T12:00");
-    return dt.toLocaleDateString("en",{day:"numeric",month:"short"});
-  });
-  var pcts=dates.map(function(d){
-    var tot=grouped[d].bm+grouped[d].formula;
-    return tot>0?Math.round(grouped[d].bm/tot*100):0;
-  });
-  var bmMls=dates.map(function(d){return grouped[d].bm;});
-
-  mkChart("chart-log-bmpct",{type:"bar",
-    data:{labels:labels,datasets:[{label:"BM %",data:pcts,backgroundColor:"rgba(232,96,122,0.75)",borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:CD.plugins,
-      scales:{x:{ticks:CD.scales.x.ticks,grid:CD.scales.x.grid},
-              y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,min:0,max:100,
-                 title:{display:true,text:"%",color:"#b09090",font:{size:11}}}}}});
-
-  mkChart("chart-log-bmml",{type:"bar",
-    data:{labels:labels,datasets:[{label:"BM (ml)",data:bmMls,backgroundColor:"rgba(232,96,122,0.75)",borderRadius:4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:CD.plugins,
-      scales:{x:{ticks:CD.scales.x.ticks,grid:CD.scales.x.grid},
-              y:{ticks:CD.scales.y.ticks,grid:CD.scales.y.grid,min:0,
-                 title:{display:true,text:"ml",color:"#b09090",font:{size:11}}}}}});
+  var dates=Object.keys(grouped).sort(function(a,b){return b.localeCompare(a);});
+  var tbody=document.getElementById("log-bm-table-body");
+  if(!tbody) return;
+  tbody.innerHTML=dates.map(function(d){
+    var bm=grouped[d].bm, fm=grouped[d].formula, tot=bm+fm;
+    var pct=tot>0?Math.round(bm/tot*100):0;
+    var lbl=new Date(d+"T12:00").toLocaleDateString("en",{day:"numeric",month:"short",year:"numeric"});
+    var pc=pct>=70?"var(--green)":pct>=40?"var(--amber)":"var(--red)";
+    return '<tr><td>'+lbl+'</td><td style="color:var(--rose);font-weight:600">'+bm+'</td><td style="color:var(--plum)">'+fm+'</td><td>'+tot+'</td>'+
+      '<td><span style="color:'+pc+';font-weight:600">'+pct+'%</span></td></tr>';
+  }).join("");
 }
 
 function renderLog(feeds){
